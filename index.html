@@ -3,346 +3,477 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>HDB Resale Insights | Matthew Tan</title>
-<meta name="description" content="What drives HDB resale prices? An analysis of every resale transaction since 2017, with an interactive dashboard and a fair-price estimator.">
-<meta property="og:title" content="HDB Resale Insights">
-<meta property="og:description" content="What drives HDB resale prices? 245,000+ transactions analysed with Python, SQL and a regression model.">
+<title>BTO Explorer | Find your first home in Singapore</title>
+<meta name="description" content="An interactive map for young couples: compare HDB towns from most to least expensive, BTO launch prices, MRT stations and hawker centres, using official government data.">
+<meta property="og:title" content="BTO Explorer">
+<meta property="og:description" content="Compare HDB towns, BTO launch prices, MRT access and food nearby on one map.">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230E7C66'/%3E%3Cpath d='M14 46V28l18-12 18 12v18H38V34H26v12z' fill='white'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#05070D">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322D3EE'/%3E%3Cstop offset='1' stop-color='%23A26BFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M14 46V28l18-12 18 12v18H38V34H26v12z' fill='%2305070D'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<script>(function(){try{var t=localStorage.getItem('mt-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
-  --paper:#F6F8F7; --surface:#FFFFFF; --surface-2:#EFF3F1; --ink:#0F1A17; --muted:#56635F; --line:#DFE6E3;
-  --brand:#0E7C66; --brand-2:#2447C8; --brand-soft:#E3F2EE; --up:#0E7C66; --down:#B4541E; --on-brand:#FFFFFF;
-  --c1:#2447C8; --c2:#0E7C66; --c3:#D97706; --c4:#9333EA; --c5:#DB2777; --grid:#E6ECE9;
-  --shadow:0 1px 2px rgba(15,26,23,.05),0 12px 32px -18px rgba(15,26,23,.22);
-  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif; --body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
-  color-scheme:light;
+  --bg:#05070D; --panel:rgba(12,16,28,.82); --panel-2:#0D1322; --ink:#E7ECF6; --muted:#8C96AB; --faint:#5D677D; --line:rgba(140,160,210,.16);
+  --cyan:#22D3EE; --blue:#5B8CFF; --violet:#A26BFF; --pink:#F472B6; --green:#34D399; --amber:#FBBF24;
+  --hi:linear-gradient(100deg,var(--cyan),var(--blue) 45%,var(--violet));
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#0A100E; --surface:#111916; --surface-2:#17211D; --ink:#E7EEEB; --muted:#94A39E; --line:#22302B;
-  --brand:#3CCB9F; --brand-2:#86A0FF; --brand-soft:#132A23; --up:#3CCB9F; --down:#F2A06B; --on-brand:#0A100E;
-  --c1:#86A0FF; --c2:#3CCB9F; --c3:#F5B04A; --c4:#C08BFF; --c5:#F477B0; --grid:#1D2925;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px -18px rgba(0,0,0,.7); color-scheme:dark;}}
-:root[data-theme="dark"]{
-  --paper:#0A100E; --surface:#111916; --surface-2:#17211D; --ink:#E7EEEB; --muted:#94A39E; --line:#22302B;
-  --brand:#3CCB9F; --brand-2:#86A0FF; --brand-soft:#132A23; --up:#3CCB9F; --down:#F2A06B; --on-brand:#0A100E;
-  --c1:#86A0FF; --c2:#3CCB9F; --c3:#F5B04A; --c4:#C08BFF; --c5:#F477B0; --grid:#1D2925;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px -18px rgba(0,0,0,.7); color-scheme:dark;}
 *,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0}
-p{margin:0}
-a{color:var(--brand)}
-a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--brand);outline-offset:2px;border-radius:8px}
-.wrap{width:min(1160px,100% - 2rem);margin-inline:auto}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:var(--cyan)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
+.mono{font-family:var(--mono)}
 
-.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-.top-in{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:60px}
-.logo{display:flex;align-items:center;gap:.6rem;font-family:var(--display);font-weight:700;color:var(--ink);text-decoration:none}
-.logo i{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--brand);color:var(--on-brand)}
+/* ---------- layout ---------- */
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh;height:100dvh}
+.top{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(5,7,13,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:5}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:700;letter-spacing:-.01em}
+.logo i{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--hi);color:#05070D;box-shadow:0 0 18px rgba(91,140,255,.5)}
 .logo i svg{width:18px;height:18px}
-.top-links{display:flex;align-items:center;gap:.4rem}
-.top-links a{color:var(--muted);text-decoration:none;font-weight:600;font-size:.9rem;padding:.4rem .7rem;border-radius:9px}
-.top-links a:hover{color:var(--ink);background:var(--surface-2)}
-.icon-btn{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
-.icon-btn svg{width:17px;height:17px}
-@media (max-width:640px){.top-links a.hide-sm{display:none}}
+.logo small{display:block;font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);letter-spacing:0}
+.top .sp{flex:1}
+.cta{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;background:var(--hi);color:#05070D;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 8px 24px -10px rgba(91,140,255,.8);white-space:nowrap}
+.cta svg{width:15px;height:15px}
+.ghost{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);color:var(--muted);text-decoration:none;font-size:13px;white-space:nowrap}
+.ghost:hover{color:var(--ink);border-color:var(--cyan)}
 
-.hero{padding:clamp(2.4rem,6vw,4rem) 0 1.6rem}
-.kicker{font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brand)}
-.hero h1{font-size:clamp(2.2rem,6vw,3.8rem);font-weight:800;letter-spacing:-.035em;margin-top:.6rem;max-width:18ch}
-.hero p{color:var(--muted);font-size:clamp(1.02rem,2vw,1.18rem);max-width:68ch;margin-top:.9rem}
-.byline{display:flex;flex-wrap:wrap;gap:.5rem 1.2rem;margin-top:1.2rem;font-size:.9rem;color:var(--muted)}
-.byline b{color:var(--ink)}
+.main{display:grid;grid-template-columns:420px 1fr;min-height:0}
+.side{overflow-y:auto;border-right:1px solid var(--line);background:linear-gradient(180deg,rgba(13,19,34,.9),rgba(5,7,13,.95));scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.side-in{padding:20px 18px 40px;display:flex;flex-direction:column;gap:18px}
+.mapwrap{position:relative;min-height:0}
+#map{position:absolute;inset:0;background:#0B0F19}
 
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.2rem;box-shadow:var(--shadow)}
-.kpi .l{font-size:.76rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
-.kpi .v{font-family:var(--display);font-size:clamp(1.6rem,3vw,2.1rem);font-weight:800;letter-spacing:-.02em;margin-top:.2rem}
-.kpi .s{font-size:.88rem;color:var(--muted)}
-.up{color:var(--up);font-weight:700}.down{color:var(--down);font-weight:700}
+/* ---------- side panel ---------- */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan)}
+h1{margin:6px 0 0;font-size:26px;line-height:1.15;letter-spacing:-.02em;font-weight:800}
+h1 span{background:var(--hi);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--muted);margin:8px 0 0;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.kpi b{display:block;font-family:var(--mono);font-size:18px;font-weight:600}
+.kpi span{font-size:11px;color:var(--muted)}
+.card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:14px;position:relative}
+.card h2{margin:0 0 10px;font-size:13px;font-family:var(--mono);font-weight:500;color:var(--muted);letter-spacing:.02em}
+.card h2 b{color:var(--ink);font-weight:500}
+.seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{flex:1;border:0;background:none;padding:7px 6px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button.on{background:rgba(91,140,255,.18);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(91,140,255,.45)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.budget{margin-top:12px}
+.budget output{font-family:var(--mono);font-weight:600;font-size:18px}
+input[type=range]{width:100%;accent-color:var(--cyan);margin:8px 0 2px}
+.hint{font-size:12px;color:var(--faint)}
+.toggles{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel-2);border-radius:999px;padding:5px 10px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
+.chip input{display:none}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.chip.on{color:var(--ink);border-color:rgba(34,211,238,.45)}
+.chip.on i{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
 
-.findings{display:grid;grid-template-columns:repeat(2,1fr);gap:.9rem;margin-top:.9rem}
-.finding{display:flex;gap:.9rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.2rem;box-shadow:var(--shadow)}
-.finding .n{flex:0 0 32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand);font-family:var(--display);font-weight:800}
-.finding h3{font-family:var(--body);font-size:1rem;font-weight:700}
-.finding p{color:var(--muted);font-size:.94rem;margin-top:.2rem}
+/* ranking list */
+.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rank button{width:100%;display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;padding:8px;border:0;border-radius:10px;background:none;cursor:pointer;text-align:left}
+.rank button:hover,.rank button.sel{background:rgba(91,140,255,.10)}
+.rank .n{font-family:var(--mono);font-size:12px;color:var(--faint);text-align:right}
+.rank .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
+.rank .bar{height:4px;border-radius:99px;margin-top:5px;background:var(--line);overflow:hidden}
+.rank .bar i{display:block;height:100%;border-radius:99px}
+.rank .v{font-family:var(--mono);font-size:13px;text-align:right}
+.rank .v small{display:block;color:var(--faint);font-size:11px}
+.tag{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:6px;border:1px solid var(--line);color:var(--muted);font-weight:500}
+.tag.bto{color:var(--green);border-color:rgba(52,211,153,.4)}
+.tag.fit{color:var(--green);border-color:rgba(52,211,153,.4)}
+.tag.btofit{color:var(--amber);border-color:rgba(251,191,36,.4)}
 
-.section{padding-top:clamp(2.4rem,6vw,3.6rem)}
-.section > h2{font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:800;letter-spacing:-.02em}
-.section > .sub{color:var(--muted);margin-top:.35rem;max-width:72ch}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:clamp(1rem,2.6vw,1.5rem);box-shadow:var(--shadow);margin-top:1.1rem}
-.panel-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.8rem}
-.panel-head h3{font-family:var(--body);font-size:1.02rem;font-weight:700}
-.note{font-size:.85rem;color:var(--muted);margin-top:.8rem}
-.chart{position:relative;height:340px}
-.chart.tall{height:640px}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.two .panel{margin-top:1.1rem}
-.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px}
-.seg button{border:0;background:none;font:inherit;font-size:.85rem;font-weight:600;color:var(--muted);padding:.35rem .75rem;border-radius:8px;cursor:pointer}
-.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+/* town detail */
+.detail{display:none}
+.detail.show{display:flex;flex-direction:column;gap:14px}
+.back{align-self:flex-start;border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:6px 10px;font-size:13px;color:var(--muted);cursor:pointer}
+.back:hover{color:var(--ink);border-color:var(--cyan)}
+.dh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.dh h3{margin:0;font-size:24px;letter-spacing:-.02em}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats div{padding:10px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line)}
+.stats b{display:block;font-family:var(--mono);font-size:16px}
+.stats span{font-size:11px;color:var(--muted)}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+.t th{text-align:left;font-weight:500;color:var(--faint);font-size:11px;font-family:var(--mono);padding:4px 0}
+.t td{padding:6px 0;border-top:1px solid var(--line)}
+.t td.num,.t th.num{text-align:right;font-family:var(--mono)}
+.save{padding:12px;border-radius:12px;background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(34,211,238,.06));border:1px solid rgba(52,211,153,.35);font-size:14px}
+.save b{font-family:var(--mono);color:var(--green)}
+.spark{width:100%;height:110px;display:block}
+.stn{display:flex;flex-wrap:wrap;gap:6px}
+.stn span{font-size:12px;padding:4px 9px;border-radius:999px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.3)}
+.stn span.l{background:rgba(162,107,255,.08);border-color:rgba(162,107,255,.3)}
+.empty{color:var(--faint);font-size:13px}
+.note{font-size:12px;color:var(--faint)}
 
-.est{display:grid;grid-template-columns:1.1fr .9fr;gap:1.4rem;align-items:stretch}
-.form{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
-.field{display:flex;flex-direction:column;gap:.35rem}
-.field label{font-size:.8rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.field select,.field input{height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-size:1rem;padding:0 .75rem}
-.field input[type=range]{padding:0;height:28px;accent-color:var(--brand);background:none;border:0}
-.field .val{font-family:var(--display);font-weight:700;font-size:1.05rem}
-.result{border-radius:16px;padding:1.4rem;background:linear-gradient(140deg,var(--brand-soft),var(--surface));border:1px solid color-mix(in srgb,var(--brand) 30%,var(--line));display:flex;flex-direction:column;justify-content:center;gap:.4rem}
-.result .l{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
-.result .price{font-family:var(--display);font-size:clamp(2.2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em}
-.result .range{color:var(--muted)}
-.result .cmp{margin-top:.6rem;padding-top:.8rem;border-top:1px dashed var(--line);font-size:.95rem}
+/* method / footer */
+details.method{font-size:13px;color:var(--muted)}
+details.method summary{cursor:pointer;color:var(--ink);font-weight:600;list-style:none;display:flex;align-items:center;justify-content:space-between}
+details.method summary::-webkit-details-marker{display:none}
+details.method summary::after{content:"+";font-family:var(--mono);color:var(--cyan)}
+details.method[open] summary::after{content:"−"}
+details.method ul{padding-left:18px;margin:10px 0 0}
+details.method li{margin:5px 0}
+.credit{font-size:12px;color:var(--faint);text-align:center}
 
-.method{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem}
-.method .panel{margin-top:1.1rem}
-.method h3{font-family:var(--body);font-size:1rem;font-weight:700;margin-bottom:.35rem}
-.method p,.method li{color:var(--muted);font-size:.93rem}
-.method ul{padding-left:1.1rem;margin:.3rem 0 0}
-code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.86em;background:var(--surface-2);border:1px solid var(--line);padding:.05rem .35rem;border-radius:6px}
-
-footer{padding:2.6rem 0 3rem;color:var(--muted);font-size:.86rem}
-footer .wrap{display:flex;flex-direction:column;gap:.4rem}
-.loading{padding:4rem 0;text-align:center;color:var(--muted)}
+/* ---------- map extras ---------- */
+.legend{position:absolute;left:14px;bottom:24px;z-index:500;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;min-width:210px}
+.legend .ramp{height:8px;border-radius:99px;margin:8px 0 4px}
+.legend .ends{display:flex;justify-content:space-between;font-family:var(--mono);color:var(--muted);font-size:11px}
+.legend .keys{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.legend .keys span{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.legend .keys i{width:12px;height:12px;border-radius:3px}
+.hud{position:absolute;right:14px;top:14px;z-index:500;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-family:var(--mono);font-size:11px;color:var(--muted);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.hud b{color:var(--cyan);font-weight:500}
+.leaflet-container{font-family:var(--sans);background:#0B0F19}
+.leaflet-tooltip.tt{background:rgba(5,7,13,.92);color:var(--ink);border:1px solid rgba(91,140,255,.45);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:8px 10px;font-size:12px}
+.leaflet-tooltip.tt::before{display:none}
+.tt b{font-size:13px}
+.tt .m{font-family:var(--mono);color:var(--cyan)}
+.leaflet-control-zoom a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.leaflet-control-attribution{background:rgba(5,7,13,.75)!important;color:var(--faint)!important;font-size:10px}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.mrt-dot{border-radius:50%;background:var(--cyan);box-shadow:0 0 0 2px rgba(5,7,13,.9),0 0 10px var(--cyan)}
+.lrt-dot{border-radius:50%;background:var(--violet);box-shadow:0 0 0 2px rgba(5,7,13,.9),0 0 8px var(--violet)}
+.zlow .mrt-dot{transform:scale(.6)}
+.zlow .lrt-dot{transform:scale(.55)}
+.hawk-dot{border-radius:4px;background:var(--amber);box-shadow:0 0 0 2px rgba(5,7,13,.9),0 0 8px rgba(251,191,36,.8);transform:rotate(45deg)}
 
 @media (max-width:900px){
-  .kpis{grid-template-columns:1fr 1fr}
-  .findings,.two,.est,.method{grid-template-columns:1fr}
-  .chart.tall{height:720px}
+  body{overflow:auto}
+  .app{height:auto;min-height:100dvh}
+  .main{grid-template-columns:1fr;grid-template-rows:56vh auto}
+  .mapwrap{order:-1;height:56vh}
+  .side{border-right:0;border-top:1px solid var(--line);overflow:visible}
+  .top{padding:10px 12px;gap:8px}
+  .logo small,.ghost.hide-sm{display:none}
+  .cta{padding:8px 10px;font-size:13px}
+  .legend{min-width:0;bottom:22px;left:8px;right:auto;max-width:62%;padding:7px 9px;font-size:11px}
+  .legend[data-mode="price"] .keys{display:none}
+  .legend .ramp{margin:5px 0 3px}
+  .hud{display:none}
 }
-@media (max-width:520px){.form{grid-template-columns:1fr}.chart{height:300px}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="wrap top-in">
-    <a class="logo" href="#"><i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 21V10l9-6 9 6v11h-6v-6H9v6z"/></svg></i>HDB Resale Insights</a>
-    <nav class="top-links">
-      <a class="hide-sm" href="#estimator">Estimator</a>
-      <a class="hide-sm" href="#method">Method</a>
-      <a href="https://github.com/yushenn/hdb-resale-insights" target="_blank" rel="noopener">Code</a>
-      <button class="icon-btn" type="button" id="themeBtn" aria-label="Switch light or dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
-    </nav>
+<div class="app">
+  <header class="top">
+    <a class="logo" href="#" aria-label="BTO Explorer home"><i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 21V10l9-6 9 6v11h-6v-6H9v6z"/></svg></i><span>BTO Explorer<small>// find your first home</small></span></a>
+    <span class="sp"></span>
+    <a class="ghost hide-sm" href="https://github.com/yushenn/bto-explorer" target="_blank" rel="noopener">Code</a>
+    <a class="ghost hide-sm" href="https://yushenn.github.io/matthew-os/" target="_blank" rel="noopener">By Matthew Tan</a>
+    <a class="cta" href="https://homes.hdb.gov.sg/home/finding-a-flat" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>Upcoming BTO launches</a>
+  </header>
+
+  <div class="main">
+    <aside class="side" aria-label="Controls and town details">
+      <div class="side-in">
+        <div id="home">
+          <div class="eyebrow">// for young couples · singapore</div>
+          <h1>Where can we <span>afford to live?</span></h1>
+          <p class="lead">Every HDB town on one map, from most to least expensive. See past BTO launch prices, what resale flats really cost, and the MRT stations and hawker centres nearby.</p>
+        </div>
+
+        <div class="detail" id="detail" aria-live="polite"></div>
+
+        <div class="kpis" id="kpis"></div>
+
+        <div class="card">
+          <h2>// flat type</h2>
+          <div class="seg" role="group" aria-label="Flat type" id="typeSeg"></div>
+          <div class="budget">
+            <div class="row"><span class="hint">Your budget</span><output id="budgetOut" for="budget" class="mono"></output></div>
+            <input id="budget" type="range" min="200000" max="1200000" step="10000" value="550000" aria-label="Your budget in Singapore dollars">
+            <div class="hint">Towns are coloured by whether a typical flat of this type fits your budget.</div>
+          </div>
+          <div class="seg" role="group" aria-label="Map colouring" id="modeSeg" style="margin-top:12px">
+            <button type="button" data-mode="price" class="on">Most → least expensive</button>
+            <button type="button" data-mode="budget">Fits my budget</button>
+          </div>
+          <div class="toggles" role="group" aria-label="Map layers">
+            <label class="chip on"><input type="checkbox" id="lyrMrt" checked><i></i>MRT</label>
+            <label class="chip on"><input type="checkbox" id="lyrLrt" checked><i></i>LRT</label>
+            <label class="chip"><input type="checkbox" id="lyrHawk"><i></i>Hawker centres</label>
+          </div>
+        </div>
+
+        <div class="card" id="rankCard">
+          <h2>// towns ranked · <b id="rankTitle">price per m²</b></h2>
+          <ol class="rank" id="rank"></ol>
+          <p class="note" style="margin:8px 0 0">Tengah is new and has no resale flats yet, so it isn't ranked. Click it on the map to see its BTO prices.</p>
+        </div>
+
+        <details class="method">
+          <summary>How this works &amp; data sources</summary>
+          <ul>
+            <li><b>Most to least expensive</b> uses the median resale price per m² in each town over the last 12 months of HDB resale data (<span id="mResale"></span>), calculated in SQL.</li>
+            <li><b>BTO prices</b> are the price ranges HDB published for BTO flats offered in each financial year (April to March), FY2008 to FY<span id="mFy"></span>. Each year only covers the towns that had launches. "After grants" is the price less the AHG/SHG grants for eligible first-timer families, as published. Today's grants are different, so check HDB for current figures.</li>
+            <li><b>Mature / non-mature</b> follows HDB's estate classification. BTO projects launched from October 2024 are classified Standard, Plus or Prime instead.</li>
+            <li><b>MRT/LRT stations</b> are placed from LTA's station exit locations. <b>Hawker centres</b> come from NEA.</li>
+            <li>Town boundaries use URA's Master Plan 2019 planning areas. Central Area and Kallang/Whampoa span more than one planning area.</li>
+          </ul>
+          <p class="note">Data from data.gov.sg (HDB, LTA, NEA, URA) under the Singapore Open Data Licence v1.0. Map tiles © OneMap / Singapore Land Authority. This is an independent student project, not financial advice. Always confirm with HDB.</p>
+        </details>
+        <p class="credit">Built by <a href="https://yushenn.github.io/matthew-os/" target="_blank" rel="noopener">Matthew Tan</a> · <a href="https://github.com/yushenn/bto-explorer" target="_blank" rel="noopener">source code</a></p>
+      </div>
+    </aside>
+
+    <div class="mapwrap">
+      <div id="map" role="application" aria-label="Map of HDB towns in Singapore"></div>
+      <div class="hud" id="hud" aria-hidden="true"></div>
+      <div class="legend" id="legend"></div>
+    </div>
   </div>
-</header>
+</div>
 
-<main class="wrap" id="app">
-  <section class="hero">
-    <div class="kicker">Data analysis · Singapore public housing</div>
-    <h1>What really drives HDB resale prices?</h1>
-    <p>I analysed every HDB resale transaction since January 2017 to find out what pushes prices up, which towns give the most space for the money, and how much lease and floor level really matter once you compare like with like.</p>
-    <div class="byline"><span>By <b><a href="https://yushenn.github.io/matthew-os/">Matthew Tan</a></b></span><span id="coverage">Loading data…</span><span>Python · SQL · Regression</span></div>
-  </section>
-  <div id="content"><div class="loading">Loading 245,000+ transactions…</div></div>
-</main>
-
-<footer>
-  <div class="wrap">
-    <span>Contains information from <i>Resale flat prices based on registration date from Jan-2017 onwards</i> (Housing &amp; Development Board), accessed from <a href="https://data.gov.sg" target="_blank" rel="noopener">data.gov.sg</a>, made available under the terms of the Singapore Open Data Licence version 1.0.</span>
-    <span>This is an independent student project, not valuation advice. © <span id="yr">2026</span> Matthew Tan · <a href="https://yushenn.github.io/matthew-os/">Portfolio</a></span>
-  </div>
-</footer>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-document.getElementById('yr').textContent = new Date().getFullYear();
+const TYPES = [['3 ROOM', '3-room'], ['4 ROOM', '4-room'], ['5 ROOM', '5-room'], ['EXECUTIVE', 'Exec']];
+const state = { type: '4 ROOM', budget: 550000, mode: 'price', sel: null };
 const $ = s => document.querySelector(s);
-const money = v => 'S$' + Math.round(v).toLocaleString('en-SG');
-const k = v => v >= 1e6 ? 'S$' + (v / 1e6).toFixed(2) + 'M' : 'S$' + Math.round(v / 1000) + 'k';
-const title = s => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\bAnd\b/, 'and');
+const k = v => v == null ? '–' : v >= 1e6 ? 'S$' + (v / 1e6).toFixed(2) + 'M' : 'S$' + Math.round(v / 1000) + 'k';
+const money = v => v == null ? '–' : 'S$' + Math.round(v).toLocaleString('en-SG');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const monthName = m => new Date(m + '-01T00:00:00').toLocaleDateString('en-SG', { month: 'short', year: 'numeric' });
-const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const charts = {};
-let D;
+let D, AREAS, map, areaLayer, mrtLayer, lrtLayer, hawkLayer, ranked;
 
-function kpi(label, value, sub) { return `<div class="kpi"><div class="l">${label}</div><div class="v">${value}</div><div class="s">${sub}</div></div>`; }
-
-function render() {
-  const f = D.findings, m = D.model, fy = f.four_room_yearly;
-  const chg = (f.median_last12 / f.median_prev12 - 1) * 100;
-  $('#coverage').textContent = `${f.transactions.toLocaleString()} sales · ${monthName(f.first_month)} to ${monthName(f.last_month)}`;
-  const towns = D.towns.filter(t => t.growth_pct !== null && t.sales_now >= 100);
-
-  $('#content').innerHTML = `
-  <div class="kpis">
-    ${kpi('Median resale price', k(f.median_last12), `last 12 months · <span class="${chg >= 0 ? 'up' : 'down'}">${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%</span> vs year before`)}
-    ${kpi('4-room flat, typical', k(f.four_room_now), `<span class="up">+${f.four_room_growth_pct}%</span> since 2017 (${k(f.four_room_then)})`)}
-    ${kpi('Million-dollar flats', f.million_last12.toLocaleString(), `sold in the last 12 months · ${f.million_first12} in 2017`)}
-    ${kpi('Model accuracy', Math.round(m.r2 * 100) + '%', `of price variation explained · typical error ${m.median_error_pct}%`)}
-  </div>
-
-  <div class="findings">
-    <div class="finding"><span class="n">1</span><div><h3>Flat until 2019, then a five-year climb</h3><p>A typical 4-room flat stayed around ${k(fy['2019'])} from 2017 to 2019, then rose every year to ${k(fy['2025'])} in 2025${fy['2026'] ? (Math.abs(fy['2026'] / fy['2025'] - 1) < 0.02 ? ', and has levelled off in 2026' : ` and ${k(fy['2026'])} in 2026`) : ''}. Million-dollar resale flats went from ${f.million_first12} a year to ${f.million_last12.toLocaleString()}.</p></div></div>
-    <div class="finding"><span class="n">2</span><div><h3>Location sets the price per m²</h3><p>${title(f.priciest_town.town)} costs ${money(f.priciest_town.psm_now)} per m², almost double ${title(f.cheapest_town.town)} at ${money(f.cheapest_town.psm_now)}. Over five years ${title(f.top_growth_town.town)} grew fastest (+${f.top_growth_town.growth_pct}%).</p></div></div>
-    <div class="finding"><span class="n">3</span><div><h3>Lease matters a lot</h3><p>Comparing like with like, a flat with 60 years left sells for about ${f.lease_60_pct_of_99}% of the same flat with 99 years left.</p></div></div>
-    <div class="finding"><span class="n">4</span><div><h3>High floors: less than it looks</h3><p>The top floors cost ${f.storey_raw_ratio}× more per m² than the lowest, but mostly because tall blocks are in pricier towns. Like for like, each floor adds about ${f.floor_effect_pct}%.</p></div></div>
-  </div>
-
-  <section class="section">
-    <h2>Prices over time</h2>
-    <p class="sub">Median resale price each month by flat type, smoothed over 3 months.</p>
-    <div class="panel"><div class="chart"><canvas id="cTrend" aria-label="Median resale price over time by flat type" role="img"></canvas></div></div>
-  </section>
-
-  <section class="section">
-    <h2>Town by town</h2>
-    <p class="sub">Median price per square metre in the last 12 months, and growth compared with the same 12 months five years earlier. Price per m² lets you compare towns fairly even when flats differ in size.</p>
-    <div class="panel">
-      <div class="panel-head"><h3 id="townTitle">Price per m², last 12 months</h3>
-        <div class="seg" role="group" aria-label="Sort towns by"><button type="button" class="on" data-sort="psm">Price per m²</button><button type="button" data-sort="growth">5-year growth</button></div></div>
-      <div class="chart tall"><canvas id="cTowns" aria-label="Towns ranked" role="img"></canvas></div>
-      <p class="note">Only towns with at least 100 sales in the last 12 months.</p>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2>Like for like: lease and floor level</h2>
-    <p class="sub">Raw averages mix lots of things together. Older flats and very tall blocks are concentrated in particular towns, so raw comparisons can mislead. The model holds town, size, flat type and date fixed and changes one thing at a time.</p>
-    <div class="two">
-      <div class="panel"><div class="panel-head"><h3>Value by remaining lease</h3></div><div class="chart"><canvas id="cLease" aria-label="Value by remaining lease" role="img"></canvas></div>
-        <p class="note">Same flat, same town; 100% = a full 99-year lease.</p></div>
-      <div class="panel"><div class="panel-head"><h3>Value by floor level</h3></div><div class="chart"><canvas id="cStorey" aria-label="Value by floor level, raw and like for like" role="img"></canvas></div>
-        <p class="note">Raw: median price per m² in each band. Like for like: the model's estimate for the same flat. Both shown as % of floors 1–3.</p></div>
-    </div>
-  </section>
-
-  <section class="section" id="estimator">
-    <h2>Fair price estimator</h2>
-    <p class="sub">Uses the regression model at today's price level. Change the inputs to see what drives the estimate.</p>
-    <div class="panel est">
-      <div class="form">
-        <div class="field"><label for="eTown">Town</label><select id="eTown">${Object.keys(m.town).sort().map(t => `<option value="${t}" ${t === 'TAMPINES' ? 'selected' : ''}>${title(t)}</option>`).join('')}</select></div>
-        <div class="field"><label for="eType">Flat type</label><select id="eType">${Object.keys(m.flat_type).map(t => `<option value="${t}" ${t === '4 ROOM' ? 'selected' : ''}>${title(t)}</option>`).join('')}</select></div>
-        <div class="field"><label for="eArea">Floor area <span class="val" id="vArea"></span></label><input id="eArea" type="range" min="35" max="190" step="1"></div>
-        <div class="field"><label for="eStorey">Floor level <span class="val" id="vStorey"></span></label><input id="eStorey" type="range" min="1" max="50" step="1"></div>
-        <div class="field"><label for="eLease">Lease left <span class="val" id="vLease"></span></label><input id="eLease" type="range" min="40" max="99" step="1"></div>
-      </div>
-      <div class="result" aria-live="polite">
-        <span class="l">Estimated price</span>
-        <span class="price" id="ePrice">–</span>
-        <span class="range" id="eRange"></span>
-        <div class="cmp" id="eCmp"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="method">
-    <h2>How I did it</h2>
-    <div class="method">
-      <div class="panel"><h3>1. Clean (Python)</h3><p>Loaded ${f.transactions.toLocaleString()} rows with pandas, converted text like "61 years 04 months" into numbers, took the middle of each storey range, and worked out price per m².</p></div>
-      <div class="panel"><h3>2. Analyse (SQL)</h3><p>Loaded the clean data into SQLite and wrote the queries for medians by month, town, lease and floor. SQLite has no <code>MEDIAN()</code>, so I used window functions (<code>ROW_NUMBER</code>, <code>COUNT OVER</code>).</p></div>
-      <div class="panel"><h3>3. Model (regression)</h3><p>Fitted a linear regression on log price with floor area, floor level, lease, town, flat type and quarter. Tested on ${m.test_rows.toLocaleString()} sales it never saw: R² ${m.r2}, typical error ${m.median_error_pct}%.</p></div>
-    </div>
-    <div class="panel"><h3 style="font-family:var(--body);font-size:1rem;margin-bottom:.3rem">Limitations</h3>
-      <ul style="margin:0;padding-left:1.1rem;color:var(--muted);font-size:.93rem">
-        <li>The model doesn't know about renovation, the exact block, distance to MRT or the view, so individual flats can differ a lot from the estimate.</li>
-        <li>The latest month only includes sales registered so far.</li>
-        <li>Correlation isn't causation: the model shows how prices move together with each factor, not why.</li>
-      </ul>
-    </div>
-  </section>`;
-
-  drawCharts(towns);
-  setupEstimator();
+// colour ramp for price per m²: cheaper = cyan, pricier = magenta
+const RAMP = ['#22D3EE', '#3BA7F5', '#5B8CFF', '#7F74FF', '#A26BFF', '#D06BD8', '#F472B6'];
+function ramp(t) {
+  t = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
+  const i = Math.floor(t), f = t - i, a = RAMP[i], b = RAMP[Math.min(i + 1, RAMP.length - 1)];
+  const h = (x, j) => parseInt(x.slice(1 + j * 2, 3 + j * 2), 16);
+  return '#' + [0, 1, 2].map(j => Math.round(h(a, j) + (h(b, j) - h(a, j)) * f).toString(16).padStart(2, '0')).join('');
 }
 
-function baseOpts(extra) {
-  const ink = cssv('--muted'), grid = cssv('--grid');
-  Chart.defaults.font.family = "'Instrument Sans', system-ui, sans-serif";
-  Chart.defaults.color = ink;
-  return Object.assign({ responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-    plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8, padding: 16 } }, tooltip: { padding: 10, cornerRadius: 8 } },
-    scales: { x: { grid: { color: grid }, border: { display: false } }, y: { grid: { color: grid }, border: { display: false } } } }, extra);
+function latestBto(t, type) {
+  const rows = (D.towns[t]?.bto || []).filter(r => r.type === type);
+  return rows.length ? rows[0] : null; // rows are sorted newest first
+}
+const RECENT_FY = () => D.meta.bto_latest_fy - 4; // only recent launches count towards "a BTO fits"
+function fit(t) {
+  const town = D.towns[t]; if (!town) return 'none';
+  const resale = town.prices[state.type]?.median, lb = latestBto(t, state.type);
+  const bto = lb && lb.fy >= RECENT_FY() ? lb : null;
+  if (resale != null && resale <= state.budget) return 'fit';
+  if (bto && bto.min != null && bto.min <= state.budget) return 'btofit';
+  if (resale == null && !bto) return 'none';
+  return 'over';
+}
+const FIT_COLOURS = { fit: '#34D399', btofit: '#FBBF24', over: '#3B4256', none: '#1A2030' };
+
+function areaStyle(f) {
+  const t = f.properties.town, town = t && D.towns[t];
+  const sel = state.sel && t === state.sel;
+  if (!town) return { color: 'rgba(140,160,210,.18)', weight: .6, fillColor: '#0D1322', fillOpacity: .35 };
+  let fill;
+  if (state.mode === 'budget') fill = FIT_COLOURS[fit(t)];
+  else fill = town.psm ? ramp(1 - (town.rank - 1) / (D.meta.towns_ranked - 1)) : '#2A3350';
+  return { color: sel ? '#FFFFFF' : 'rgba(5,7,13,.9)', weight: sel ? 2.5 : 1, fillColor: fill, fillOpacity: sel ? .78 : .55, dashArray: town.psm ? null : '4 4' };
 }
 
-function drawCharts(towns) {
-  Object.values(charts).forEach(c => c.destroy());
-  const cols = ['--c1', '--c2', '--c3', '--c4'].map(cssv);
-
-  // trend
-  const types = ['3 ROOM', '4 ROOM', '5 ROOM', 'EXECUTIVE'];
-  const months = [...new Set(D.monthly_by_type.map(r => r.month))].sort();
-  const series = types.map((t, i) => {
-    const byM = Object.fromEntries(D.monthly_by_type.filter(r => r.flat_type === t).map(r => [r.month, r.median_price]));
-    const raw = months.map(mo => byM[mo] ?? null);
-    const smooth = raw.map((_, j) => { const w = raw.slice(Math.max(0, j - 2), j + 1).filter(v => v != null); return w.length ? w.reduce((a, b) => a + b) / w.length : null; });
-    return { label: title(t), data: smooth, borderColor: cols[i], backgroundColor: cols[i], borderWidth: 2.4, pointRadius: 0, tension: .25 };
-  });
-  charts.trend = new Chart($('#cTrend'), { type: 'line', data: { labels: months, datasets: series }, options: baseOpts({
-    scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 10, callback: function (v) { const l = this.getLabelForValue(v); return l.endsWith('-01') ? l.slice(0, 4) : ''; }, autoSkip: false } },
-              y: { grid: { color: cssv('--grid') }, border: { display: false }, ticks: { callback: v => k(v) } } },
-    plugins: { legend: { position: 'top', align: 'start', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } }, tooltip: { callbacks: { title: i => monthName(i[0].label), label: c => ` ${c.dataset.label}: ${money(c.parsed.y)}` } } } }) });
-
-  // towns
-  const drawTowns = by => {
-    if (charts.towns) charts.towns.destroy();
-    const list = [...towns].sort((a, b) => by === 'psm' ? b.psm_now - a.psm_now : b.growth_pct - a.growth_pct);
-    $('#townTitle').textContent = by === 'psm' ? 'Price per m², last 12 months' : 'Growth in price per m² over 5 years';
-    const c = cssv(by === 'psm' ? '--c1' : '--c2');
-    charts.towns = new Chart($('#cTowns'), { type: 'bar', data: { labels: list.map(t => title(t.town)),
-      datasets: [{ data: list.map(t => by === 'psm' ? t.psm_now : t.growth_pct), backgroundColor: c, borderRadius: 5, barThickness: 'flex', maxBarThickness: 18 }] },
-      options: baseOpts({ indexAxis: 'y', interaction: { mode: 'nearest', intersect: true },
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => { const t = list[ctx.dataIndex]; return [` ${money(t.psm_now)} per m² now`, ` ${t.growth_pct > 0 ? '+' : ''}${t.growth_pct}% in 5 years`, ` ${t.sales_now.toLocaleString()} sales`]; } } } },
-        scales: { x: { grid: { color: cssv('--grid') }, border: { display: false }, ticks: { callback: v => by === 'psm' ? 'S$' + (v / 1000) + 'k' : v + '%' } }, y: { grid: { display: false }, border: { display: false }, ticks: { autoSkip: false, font: { size: 12 } } } } }) });
-  };
-  document.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => {
-    document.querySelectorAll('[data-sort]').forEach(x => x.classList.toggle('on', x === b)); drawTowns(b.dataset.sort);
-  });
-  drawTowns(document.querySelector('[data-sort].on').dataset.sort);
-
-  // lease (like for like)
-  const lc = D.model.lease_curve;
-  charts.lease = new Chart($('#cLease'), { type: 'line', data: { labels: lc.map(p => p.lease + ' yrs'),
-    datasets: [{ label: 'Like for like', data: lc.map(p => p.pct_of_99), borderColor: cssv('--c2'), backgroundColor: cssv('--brand-soft'), fill: true, borderWidth: 2.6, pointRadius: 3, tension: .3 }] },
-    options: baseOpts({ plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.parsed.y}% of a 99-year lease` } } },
-      scales: { x: { grid: { display: false } }, y: { min: 40, max: 105, grid: { color: cssv('--grid') }, border: { display: false }, ticks: { callback: v => v + '%' } } } }) });
-
-  // storey: raw vs like for like
-  const base = D.storey[0].median_psm;
-  charts.storey = new Chart($('#cStorey'), { type: 'bar', data: { labels: D.storey.map(s => 'Floor ' + s.band.replace(/^0/, '').replace('-0', '–').replace('-', '–')),
-    datasets: [
-      { label: 'Raw', data: D.storey.map(s => Math.round(s.median_psm / base * 100)), backgroundColor: cssv('--c3'), borderRadius: 5, maxBarThickness: 26 },
-      { label: 'Like for like', data: D.model.storey_curve.map(s => s.pct_of_low), backgroundColor: cssv('--c2'), borderRadius: 5, maxBarThickness: 26 }] },
-    options: baseOpts({ plugins: { legend: { position: 'top', align: 'start', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } }, tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y}%` } } },
-      scales: { x: { grid: { display: false }, ticks: { font: { size: 11 } } }, y: { min: 80, grid: { color: cssv('--grid') }, border: { display: false }, ticks: { callback: v => v + '%' } } } }) });
+function tooltipHtml(t) {
+  const town = D.towns[t];
+  const p = town.prices[state.type], b = latestBto(t, state.type);
+  return `<b>${esc(town.name)}</b>${town.rank ? ` <span class="m">#${town.rank}</span>` : ''}<br>` +
+    (town.psm ? `<span class="m">${money(town.psm)}/m²</span> · ` : '') +
+    `${esc(TYPES.find(x => x[0] === state.type)[1])} resale ${p ? k(p.median) : '–'}` +
+    (b ? `<br>BTO FY${b.fy}: ${k(b.min)}–${k(b.max)}` : '');
 }
 
-function setupEstimator() {
-  const m = D.model, el = id => document.getElementById(id);
-  const typical = () => m.typical[el('eType').value] || { area: 93, storey: 8, lease: 75 };
-  const fill = () => { const t = typical(); el('eArea').value = t.area; el('eStorey').value = t.storey; el('eLease').value = t.lease; };
-  const townMedian = Object.fromEntries(D.towns.map(t => [t.town, t.psm_now]));
-  const calc = () => {
-    const town = el('eTown').value, type = el('eType').value, area = +el('eArea').value, st = +el('eStorey').value, L = +el('eLease').value;
-    el('vArea').textContent = area + ' m²'; el('vStorey').textContent = st; el('vLease').textContent = L + ' yrs';
-    const z = m.intercept + m.log_area * Math.log(area) + m.storey * st + m.lease * L + m.lease_sq * L * L / 100 + (m.town[town] || 0) + (m.flat_type[type] || 0) + m.quarter_effect;
-    const p = Math.exp(z), e = m.median_error_pct / 100;
-    el('ePrice').textContent = money(Math.round(p / 1000) * 1000);
-    el('eRange').textContent = `Typical range ${k(p * (1 - e))} – ${k(p * (1 + e))}`;
-    const psm = p / area, tm = townMedian[town];
-    el('eCmp').innerHTML = tm ? `That's <b>${money(psm)}</b> per m², ${psm >= tm ? '<span class="down">' + Math.round((psm / tm - 1) * 100) + '% above' : '<span class="up">' + Math.round((1 - psm / tm) * 100) + '% below'}</span> the ${title(town)} median of ${money(tm)}.` : '';
-  };
-  el('eType').onchange = () => { fill(); calc(); };
-  ['eTown', 'eArea', 'eStorey', 'eLease'].forEach(id => el(id).oninput = calc);
-  fill(); calc();
+function drawAreas() {
+  if (areaLayer) areaLayer.remove();
+  areaLayer = L.geoJSON(AREAS, {
+    style: areaStyle,
+    onEachFeature: (f, layer) => {
+      const t = f.properties.town;
+      if (!t || !D.towns[t]) { layer.bindTooltip(esc(f.properties.area), { className: 'tt', sticky: true }); return; }
+      layer.bindTooltip(() => tooltipHtml(t), { className: 'tt', sticky: true });
+      layer.on('mouseover', () => { layer.setStyle({ fillOpacity: .8 }); $('#hud').innerHTML = `hover <b>${esc(D.towns[t].name.toLowerCase())}</b>`; });
+      layer.on('mouseout', () => areaLayer.resetStyle(layer));
+      layer.on('click', () => select(t, true));
+    }
+  }).addTo(map);
+  areaLayer.bringToBack();
 }
 
-$('#themeBtn').onclick = () => {
-  const r = document.documentElement, cur = r.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  const next = cur === 'dark' ? 'light' : 'dark';
-  r.setAttribute('data-theme', next); try { localStorage.setItem('mt-theme', next); } catch (e) {}
-  if (D) { drawCharts(D.towns.filter(t => t.growth_pct !== null && t.sales_now >= 100)); }
-};
+function dotIcon(cls, size) { return L.divIcon({ className: '', html: `<div class="${cls}" style="width:${size}px;height:${size}px"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] }); }
+function drawPoints() {
+  mrtLayer = L.layerGroup(D.stations.filter(s => s.kind === 'MRT').map(s => L.marker([s.lat, s.lng], { icon: dotIcon('mrt-dot', 9), keyboard: false })
+    .bindTooltip(`<b>${esc(s.name)}</b> MRT`, { className: 'tt', direction: 'top', offset: [0, -6] })));
+  lrtLayer = L.layerGroup(D.stations.filter(s => s.kind === 'LRT').map(s => L.marker([s.lat, s.lng], { icon: dotIcon('lrt-dot', 7), keyboard: false })
+    .bindTooltip(`<b>${esc(s.name)}</b> LRT`, { className: 'tt', direction: 'top', offset: [0, -5] })));
+  hawkLayer = L.layerGroup(D.hawkers.map(h => L.marker([h.lat, h.lng], { icon: dotIcon('hawk-dot', 8), keyboard: false })
+    .bindTooltip(`<b>${esc(h.name)}</b>${h.stalls ? `<br>${h.stalls} cooked-food stalls` : ''}`, { className: 'tt', direction: 'top', offset: [0, -6] })));
+  if ($('#lyrMrt').checked) mrtLayer.addTo(map);
+  if ($('#lyrLrt').checked) lrtLayer.addTo(map);
+}
 
-fetch('data.json').then(r => r.json()).then(d => { D = d; render(); })
-  .catch(() => { $('#content').innerHTML = '<div class="loading">Couldn\'t load the data. Please refresh the page.</div>'; });
+function legend() {
+  $('#legend').dataset.mode = state.mode;
+  if (state.mode === 'price') {
+    const r = ranked.map(t => D.towns[t].psm);
+    $('#legend').innerHTML = `<div class="eyebrow">// resale price per m²</div><div class="ramp" style="background:linear-gradient(90deg,${RAMP.join(',')})"></div>
+      <div class="ends"><span>${money(Math.min(...r))}</span><span>${money(Math.max(...r))}</span></div>
+      <div class="keys"><span><i style="background:var(--cyan);border-radius:50%;width:9px;height:9px;box-shadow:0 0 8px var(--cyan)"></i>MRT station</span>
+      <span><i style="background:var(--violet);border-radius:50%;width:7px;height:7px"></i>LRT station</span></div>`;
+  } else {
+    const label = TYPES.find(x => x[0] === state.type)[1];
+    $('#legend').innerHTML = `<div class="eyebrow">// ${esc(label)} within ${k(state.budget)}</div><div class="keys">
+      <span><i style="background:${FIT_COLOURS.fit}"></i>Typical resale fits</span>
+      <span><i style="background:${FIT_COLOURS.btofit}"></i>Only a BTO fits (launch FY${RECENT_FY()}+)</span>
+      <span><i style="background:${FIT_COLOURS.over}"></i>Above budget</span>
+      <span><i style="background:${FIT_COLOURS.none};border:1px solid var(--line)"></i>No data for this flat type</span></div>`;
+  }
+}
+
+function renderRank() {
+  const label = TYPES.find(x => x[0] === state.type)[1];
+  $('#rankTitle').textContent = state.mode === 'price' ? 'price per m²' : `${label} vs ${k(state.budget)}`;
+  const max = D.towns[ranked[0]].psm, min = D.towns[ranked[ranked.length - 1]].psm;
+  $('#rank').innerHTML = ranked.map(t => {
+    const town = D.towns[t], p = town.prices[state.type], f = fit(t);
+    const pct = 18 + 82 * (town.psm - min) / (max - min);
+    const colour = ramp(1 - (town.rank - 1) / (D.meta.towns_ranked - 1));
+    const tag = state.mode === 'budget' ? (f === 'fit' ? '<span class="tag fit">fits</span>' : f === 'btofit' ? '<span class="tag btofit">BTO fits</span>' : '') : (town.bto.length ? '<span class="tag bto">BTO data</span>' : '');
+    return `<li><button type="button" data-town="${esc(t)}" class="${state.sel === t ? 'sel' : ''}">
+      <span class="n">${town.rank}</span>
+      <span><span class="nm">${esc(town.name)} ${tag}</span><span class="bar"><i style="width:${pct}%;background:${colour}"></i></span></span>
+      <span class="v">${money(town.psm)}<small>${label} ${p ? k(p.median) : '–'}</small></span></button></li>`;
+  }).join('');
+  document.querySelectorAll('#rank button').forEach(b => b.onclick = () => select(b.dataset.town, true));
+}
+
+function sparkline(t) {
+  const rows = D.towns[t].bto.filter(r => r.type === state.type && r.min && r.max).sort((a, b) => a.fy - b.fy);
+  if (rows.length < 2) return '';
+  const W = 360, H = 110, L = 6, R = 6, T = 12, B = 18;
+  const x0 = rows[0].fy, x1 = rows[rows.length - 1].fy, y0 = Math.min(...rows.map(r => r.min)) * .9, y1 = Math.max(...rows.map(r => r.max)) * 1.05;
+  const X = v => L + (v - x0) / Math.max(1, x1 - x0) * (W - L - R), Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  const top = rows.map(r => `${X(r.fy).toFixed(1)},${Y(r.max).toFixed(1)}`), bot = rows.slice().reverse().map(r => `${X(r.fy).toFixed(1)},${Y(r.min).toFixed(1)}`);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="BTO price range over the years">
+    <defs><linearGradient id="sg" x1="0" x2="1"><stop offset="0" stop-color="#22D3EE" stop-opacity=".35"/><stop offset="1" stop-color="#A26BFF" stop-opacity=".35"/></linearGradient></defs>
+    <polygon points="${top.concat(bot).join(' ')}" fill="url(#sg)"/>
+    <polyline points="${top.join(' ')}" fill="none" stroke="#A26BFF" stroke-width="2"/><polyline points="${rows.map(r => `${X(r.fy).toFixed(1)},${Y(r.min).toFixed(1)}`).join(' ')}" fill="none" stroke="#22D3EE" stroke-width="2"/>
+    ${rows.map(r => `<circle cx="${X(r.fy).toFixed(1)}" cy="${Y(r.min).toFixed(1)}" r="2.5" fill="#22D3EE"/>`).join('')}
+    <text x="${L}" y="${H - 4}" fill="#8C96AB" font-size="10" font-family="JetBrains Mono">FY${x0}</text><text x="${W - R}" y="${H - 4}" fill="#8C96AB" font-size="10" text-anchor="end" font-family="JetBrains Mono">FY${x1}</text>
+    <text x="${W - R}" y="${(Y(rows[rows.length - 1].max) - 4).toFixed(1)}" fill="#E7ECF6" font-size="10" text-anchor="end" font-family="JetBrains Mono">${k(rows[rows.length - 1].max)}</text>
+  </svg>`;
+}
+
+function renderDetail(t) {
+  const town = D.towns[t], label = TYPES.find(x => x[0] === state.type)[1];
+  const p = town.prices[state.type], b = latestBto(t, state.type);
+  const latestFy = town.bto.length ? town.bto[0].fy : null;
+  const btoRows = latestFy ? town.bto.filter(r => r.fy === latestFy) : [];
+  let save = '';
+  if (p && b && b.min != null) {
+    const gap = p.median - b.min;
+    save = gap > 0
+      ? `<div class="save">In ${esc(town.name)}, a ${label} BTO started at <b>${k(b.min)}</b> in FY${b.fy}, while a typical ${label} resale flat sold for <b>${k(p.median)}</b> in the last year: a gap of <b>${k(gap)}</b>.</div>`
+      : `<div class="save">In ${esc(town.name)}, the latest ${label} BTO launch (FY${b.fy}) started at <b>${k(b.min)}</b>, close to the typical resale price of ${k(p.median)}.</div>`;
+  }
+  const typeRows = TYPES.map(([key, lab]) => { const x = town.prices[key]; return x ? `<tr><td>${lab}</td><td class="num">${k(x.median)}</td><td class="num">${x.area ?? '–'} m²</td><td class="num">${x.lease ?? '–'} yrs</td></tr>` : ''; }).join('');
+  $('#detail').innerHTML = `
+    <button type="button" class="back" id="backBtn">← All towns</button>
+    <div class="dh"><div><div class="eyebrow">// town ${town.rank ? '#' + town.rank + ' of ' + D.meta.towns_ranked : '· new town'}</div><h3>${esc(town.name)}</h3>
+      <div class="badges"><span class="tag">${town.mature ? 'Mature estate' : 'Non-mature estate'}</span>${town.bto.length ? `<span class="tag bto">BTO launches FY${town.bto[town.bto.length - 1].fy}–${latestFy}</span>` : ''}</div></div></div>
+    <div class="stats">
+      <div><b>${town.psm ? money(town.psm) : '–'}</b><span>per m², resale</span></div>
+      <div><b>${town.growth != null ? (town.growth > 0 ? '+' : '') + town.growth + '%' : '–'}</b><span>vs 5 years ago</span></div>
+      <div><b>${town.mrt.length}${town.lrt.length ? ' + ' + town.lrt.length : ''}</b><span>MRT${town.lrt.length ? ' + LRT' : ''} stations</span></div>
+    </div>
+    ${save}
+    <div class="card"><h2>// BTO launch prices${latestFy ? ' · <b>FY' + latestFy + '</b>' : ''}</h2>
+      ${btoRows.length ? `<table class="t"><thead><tr><th>Flat</th><th class="num">Price range</th><th class="num">After grants*</th></tr></thead><tbody>
+        ${btoRows.map(r => `<tr${r.type === state.type ? ' style="color:var(--ink);font-weight:600"' : ' style="color:var(--muted)"'}><td>${r.type.replace(' ROOM', '-room')}</td><td class="num">${k(r.min)}–${k(r.max)}</td><td class="num">${r.min_grant != null ? k(r.min_grant) + '–' + k(r.max_grant) : '–'}</td></tr>`).join('')}
+      </tbody></table>${sparkline(t) ? `<div class="hint" style="margin:10px 0 4px">${label} BTO price range over the years</div>${sparkline(t)}` : ''}
+      <p class="note" style="margin:8px 0 0">*Less AHG/SHG grants for eligible first-timer families, as published by HDB. Today's grants differ.</p>`
+      : `<p class="empty">No BTO price data for ${esc(town.name)} in HDB's published table (it only covers towns with launches each year). Check HDB for upcoming launches.</p>`}
+      <a class="cta" style="margin-top:12px;justify-content:center" href="https://homes.hdb.gov.sg/home/finding-a-flat" target="_blank" rel="noopener">Check upcoming BTOs on HDB</a>
+    </div>
+    <div class="card"><h2>// resale prices · last 12 months</h2>
+      ${typeRows ? `<table class="t"><thead><tr><th>Flat</th><th class="num">Typical price</th><th class="num">Size</th><th class="num">Lease left</th></tr></thead><tbody>${typeRows}</tbody></table>` : `<p class="empty">No resale flats here yet. Flats can only be resold after the 5-year minimum occupation period.</p>`}
+    </div>
+    <div class="card"><h2>// getting around & food</h2>
+      ${town.mrt.length ? `<div class="stn">${town.mrt.map(s => `<span>${esc(s)}</span>`).join('')}${town.lrt.map(s => `<span class="l">${esc(s)} LRT</span>`).join('')}</div>` : `<p class="empty">No MRT station inside ${esc(town.name)} yet.</p>`}
+      <p class="hint" style="margin:10px 0 0">${town.hawkers} hawker centre${town.hawkers === 1 ? '' : 's'} in this town. Turn on "Hawker centres" to see them on the map.</p>
+    </div>`;
+  $('#backBtn').onclick = () => select(null, false);
+}
+
+function select(t, fly) {
+  state.sel = t;
+  $('#rankCard').style.display = t ? 'none' : '';
+  $('#home').style.display = t ? 'none' : '';
+  $('#kpis').style.display = t ? 'none' : '';
+  $('#detail').classList.toggle('show', !!t);
+  if (t) {
+    renderDetail(t);
+    if (fly) {
+      const layers = []; areaLayer.eachLayer(l => { if (l.feature.properties.town === t) layers.push(l); });
+      if (layers.length) map.flyToBounds(L.featureGroup(layers).getBounds(), { padding: [40, 40], maxZoom: 14, duration: .8 });
+    }
+    document.querySelector('.side').scrollTop = 0;
+    $('#hud').innerHTML = `selected <b>${esc(D.towns[t].name.toLowerCase())}</b>`;
+  } else {
+    map.flyToBounds(SG_BOUNDS, { duration: .6 });
+    renderRank();
+  }
+  areaLayer.setStyle(areaStyle);
+}
+
+function refresh() {
+  $('#budgetOut').textContent = money(state.budget);
+  areaLayer.setStyle(areaStyle);
+  legend();
+  renderRank();
+  if (state.sel) renderDetail(state.sel);
+}
+
+let SG_BOUNDS;
+async function init() {
+  [D, AREAS] = await Promise.all([fetch('data.json').then(r => r.json()), fetch('areas.geojson').then(r => r.json())]);
+  ranked = Object.keys(D.towns).filter(t => D.towns[t].rank).sort((a, b) => D.towns[a].rank - D.towns[b].rank);
+  $('#kpis').innerHTML = `<div class="kpi"><b>${ranked.length + 1}</b><span>HDB towns</span></div>
+    <div class="kpi"><b>${D.stations.length}</b><span>MRT + LRT stations</span></div>
+    <div class="kpi"><b>FY${D.meta.bto_latest_fy}</b><span>latest BTO prices</span></div>`;
+  $('#mResale').textContent = `${D.meta.resale_sales.toLocaleString()} sales, ${monthName(D.meta.resale_from)} to ${monthName(D.meta.resale_to)}`;
+  $('#mFy').textContent = D.meta.bto_latest_fy;
+  $('#typeSeg').innerHTML = TYPES.map(([key, lab]) => `<button type="button" data-type="${key}" class="${key === state.type ? 'on' : ''}">${lab}</button>`).join('');
+  document.querySelectorAll('#typeSeg button').forEach(b => b.onclick = () => { state.type = b.dataset.type; document.querySelectorAll('#typeSeg button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
+  document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => { state.mode = b.dataset.mode; document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
+  $('#budget').oninput = e => { state.budget = +e.target.value; if (state.mode !== 'budget') { state.mode = 'budget'; document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('on', x.dataset.mode === 'budget')); } refresh(); };
+
+  SG_BOUNDS = L.latLngBounds([1.235, 103.62], [1.47, 104.01]);
+  map = L.map('map', { zoomControl: true, minZoom: 10, maxZoom: 18, zoomSnap: 0.25, zoomDelta: 0.5, maxBounds: L.latLngBounds([1.144, 103.5], [1.494, 104.15]), attributionControl: true }).fitBounds(SG_BOUNDS);
+  L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Night/{z}/{x}/{y}.png', {
+    detectRetina: true, maxZoom: 19, minZoom: 10,
+    attribution: '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> © contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">Singapore Land Authority</a>'
+  }).addTo(map);
+  drawAreas();
+  drawPoints();
+  const toggle = (id, layer) => { const el = $(id); el.onchange = () => { el.parentElement.classList.toggle('on', el.checked); el.checked ? layer().addTo(map) : layer().remove(); }; };
+  toggle('#lyrMrt', () => mrtLayer); toggle('#lyrLrt', () => lrtLayer); toggle('#lyrHawk', () => hawkLayer);
+  const zoomClass = () => map.getContainer().classList.toggle('zlow', map.getZoom() < 12.5);
+  map.on('zoomend', zoomClass); zoomClass();
+  map.on('mousemove', e => { if (!state.sel) $('#hud').innerHTML = `lat <b>${e.latlng.lat.toFixed(4)}</b> · lng <b>${e.latlng.lng.toFixed(4)}</b>`; });
+  $('#hud').innerHTML = 'hover a town · click for details';
+  refresh();
+}
+init().catch(() => { $('#rank').innerHTML = '<li class="empty">Couldn\'t load the data. Please refresh.</li>'; });
 </script>
 </body>
 </html>
