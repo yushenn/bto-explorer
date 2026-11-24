@@ -16,6 +16,7 @@ Saves into data/:
 import json
 import pathlib
 import time
+import urllib.error
 import urllib.request
 
 DATA = pathlib.Path(__file__).resolve().parent.parent / "data"
@@ -33,9 +34,27 @@ FILES = {
 BTO_PRICES = "d_2d493bdcc1d9a44828b6e71cb095b88d"  # small table, read through the datastore API
 
 
+# data.gov.sg rejects Python's default "Python-urllib" User-Agent, so identify the script
+HEADERS = {"User-Agent": "bto-explorer-data-update (+https://github.com/yushenn/bto-explorer)"}
+
+
+def fetch(url, timeout=120, tries=5):
+    """GET a URL, retrying with a growing pause if the server is busy (429 / 5xx) or the network drops."""
+    for attempt in range(1, tries + 1):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=HEADERS), timeout=timeout) as r:
+                return r.read()
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504) or attempt == tries:
+                raise
+        except urllib.error.URLError:
+            if attempt == tries:
+                raise
+        time.sleep(5 * attempt)
+
+
 def get_json(url):
-    with urllib.request.urlopen(url, timeout=60) as r:
-        return json.load(r)
+    return json.loads(fetch(url))
 
 
 def download_file(dataset_id, name):
@@ -48,8 +67,9 @@ def download_file(dataset_id, name):
         time.sleep(3)
     else:
         raise SystemExit(f"data.gov.sg did not return a download link for {name}; try again later.")
-    urllib.request.urlretrieve(url, DATA / name)
+    (DATA / name).write_bytes(fetch(url, timeout=300))
     print(f"Saved {name} ({(DATA / name).stat().st_size / 1e6:.1f} MB)")
+    time.sleep(2)  # spread requests out to stay within the API's rate limit
 
 
 def main():
