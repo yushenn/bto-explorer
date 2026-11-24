@@ -9,6 +9,9 @@ Saves into data/:
   hawkers.geojson          Hawker centres (NEA)
   property-info.csv        Every HDB block: completion year, storeys, homes, flat types (HDB)
   hdb-buildings.geojson    Location of every HDB building (HDB, about 60 MB)
+  clinics.geojson          CHAS clinics (MOH)
+  parks.geojson            Parks and nature reserves (NParks)
+  schools.csv              General information of schools (MOE)
 """
 import json
 import pathlib
@@ -23,6 +26,9 @@ FILES = {
     "d_4a086da0a5553be1d89383cd90d07ecd": "hawkers.geojson",
     "d_17f5382f26140b1fdae0ba2ef6239d2f": "property-info.csv",
     "d_16b157c52ed637edd6ba1232e026258d": "hdb-buildings.geojson",
+    "d_548c33ea2d99e29ec63a7cc9edcccedc": "clinics.geojson",
+    "d_77d7ec97be83d44f61b85454f844382f": "parks.geojson",
+    "d_688b934f82c1059ed0a6993d2a829089": "schools.csv",
 }
 BTO_PRICES = "d_2d493bdcc1d9a44828b6e71cb095b88d"  # small table, read through the datastore API
 

@@ -16,6 +16,7 @@ from collections import defaultdict
 import pandas as pd
 from shapely.geometry import Point, mapping, shape
 
+import amenities
 import blocks as blockdata
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -190,6 +191,20 @@ def main():
 
     # one small file per town with every block's location, completion year and recent prices
     blocks_by_town, _, _ = blockdata.build_blocks(DATA, lambda x, y: locate(x, y, shapes), resale)
+    schools = amenities.load_schools(DATA, ROOT / "analysis")
+    clinics = amenities.load_clinics(DATA)
+    parks = amenities.load_parks(DATA)
+    amenities.enrich_blocks(blocks_by_town, st, hc, schools, clinics, parks)
+    for kind, pts in (("schools", schools), ("clinics", clinics), ("parks", parks)):
+        for p in pts:
+            p["town"] = locate(p["lng"], p["lat"], shapes)[1]
+    (ROOT / "amenities.json").write_text(json.dumps({"schools": schools, "clinics": clinics, "parks": parks}, separators=(",", ":")), encoding="utf-8")
+    for t, d in data_towns.items():
+        d["schools_primary"] = sum(1 for x in schools if x["town"] == t and x["kind"] == "primary")
+        d["schools_secondary"] = sum(1 for x in schools if x["town"] == t and x["kind"] == "secondary")
+        d["clinics"] = sum(1 for x in clinics if x["town"] == t)
+        d["parks"] = sum(1 for x in parks if x["town"] == t)
+    print(f"Amenities: {len(schools)} schools, {len(clinics)} clinics, {len(parks)} parks")
     year_now = int(last_month[:4])
     bdir = ROOT / "blocks"
     bdir.mkdir(exist_ok=True)

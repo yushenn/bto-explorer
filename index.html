@@ -167,6 +167,15 @@ details.about li{margin:6px 0}
 .zlow .stdot{transform:scale(.6)}
 .zlow .hk{transform:scale(.75)}
 .hk{border-radius:4px;background:#D97706;border:2px solid #fff;box-shadow:0 1px 4px rgba(17,24,39,.4)}
+.am{display:grid;place-items:center;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(17,24,39,.4);color:#fff;font-size:9px;font-weight:700;line-height:1}
+.am.school{background:#7C3AED}.am.clinic{background:#DC2626}.am.park{background:#16A34A;border-radius:4px}
+.near{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:4px;font-size:12px;color:var(--ink-2)}
+.near span b{font-weight:600;color:var(--ink)}
+.mrtline{display:flex;align-items:center;gap:6px;margin:6px 0 2px;font-size:12px}
+.mrtline i{width:10px;height:10px;border-radius:50%;border:2.5px solid #0F766E;background:#fff;flex:none}
+.amen{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.amen div{background:var(--bg);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--ink-2)}
+.amen b{display:block;font-size:16px;color:var(--ink)}
 
 @media (max-width:900px){
   body{overflow:auto}
@@ -223,6 +232,9 @@ details.about li{margin:6px 0}
             <label class="check"><input type="checkbox" id="lyrMrt" checked>MRT</label>
             <label class="check"><input type="checkbox" id="lyrLrt">LRT</label>
             <label class="check"><input type="checkbox" id="lyrHawk">Hawker centres</label>
+            <label class="check"><input type="checkbox" id="lyrSchool">Schools</label>
+            <label class="check"><input type="checkbox" id="lyrClinic">CHAS clinics</label>
+            <label class="check"><input type="checkbox" id="lyrPark">Parks</label>
           </div>
         </div>
 
@@ -238,11 +250,13 @@ details.about li{margin:6px 0}
             <li><b>Town ranking:</b> the median resale price per m² in each town over the last 12 months (<span id="mResale"></span>), calculated in SQL.</li>
             <li><b>Blocks:</b> HDB's list of residential blocks (completion year, storeys, homes, flat types), placed on the map using HDB's building locations. <span id="mBlocks"></span> blocks are shown. Block prices are the resale transactions in the last 24 months.</li>
             <li><b>BTO prices:</b> the price ranges HDB published for BTO flats offered in each financial year, FY2008 to FY<span id="mFy"></span>. Each year only covers the towns that had launches. "After grants" is the price less the AHG/SHG grants, as published. Today's grants are different.</li>
+            <li><b>Nearby:</b> the nearest MRT station, and the schools, CHAS clinics, parks and hawker centres within 1 km of each block, are measured in a straight line, not along walking routes. School locations are looked up on OneMap from MOE's postal codes. MOE measures home-to-school distance for Primary 1 registration its own way, so use OneMap's school query for that.</li>
+            <li><b>Updates:</b> the data is refreshed automatically every month from data.gov.sg.</li>
             <li><b>Lease left</b> is estimated from the year the lease started (or the completion year), assuming a 99-year lease.</li>
             <li><b>Mature / non-mature</b> follows HDB's estate classification. BTO projects launched from October 2024 are classified Standard, Plus or Prime instead.</li>
             <li><b>Not included:</b> future BTO projects. There's no open dataset of upcoming launches, so use the "Upcoming BTO launches" button to check HDB's Flat Portal.</li>
           </ul>
-          <p class="note">Sources: HDB, URA, LTA and NEA via data.gov.sg, under the Singapore Open Data Licence v1.0. Map © OneMap / Singapore Land Authority.</p>
+          <p class="note">Sources: HDB, URA, LTA, NEA, MOE, MOH and NParks via data.gov.sg, with school locations from OneMap, under the Singapore Open Data Licence v1.0. Map © OneMap / Singapore Land Authority.</p>
         </details>
         <p class="disclaimer">BTO Explorer is an independent student project by <a href="https://yushenn.github.io/matthew-os/" target="_blank" rel="noopener">Matthew Tan</a>. It is not affiliated with HDB. Prices are for reference only; always confirm with HDB.</p>
       </div>
@@ -266,7 +280,7 @@ const money = v => v == null ? '–' : 'S$' + Math.round(v).toLocaleString('en-S
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const monthName = m => new Date(m + '-01T00:00:00').toLocaleDateString('en-SG', { month: 'short', year: 'numeric' });
 const typeLabel = t => (TYPES.find(x => x[0] === t) || [t, t])[1];
-let D, AREAS, map, areaLayer, mrtLayer, lrtLayer, hawkLayer, blockLayer, ranked, SG_BOUNDS;
+let D, AREAS, AM, map, areaLayer, mrtLayer, lrtLayer, hawkLayer, schoolLayer, clinicLayer, parkLayer, blockLayer, ranked, SG_BOUNDS;
 const blockCache = {};
 
 // cheaper towns are green, pricier towns are red
@@ -329,6 +343,13 @@ function drawPoints() {
   hawkLayer = L.layerGroup(D.hawkers.map(h => L.marker([h.lat, h.lng], { icon: icon('hk', 12, 12), keyboard: false, zIndexOffset: 300 })
     .bindTooltip(`<b>${esc(h.name)}</b>${h.stalls ? `<br>${h.stalls} cooked-food stalls` : ''}`, { className: 'tt', direction: 'top', offset: [0, -7] })));
   if ($('#lyrMrt').checked) mrtLayer.addTo(map);
+  const amIcon = (cls, txt) => L.divIcon({ className: '', html: `<div class="am ${cls}" style="width:16px;height:16px">${txt}</div>`, iconSize: [16, 16], iconAnchor: [8, 8] });
+  schoolLayer = L.layerGroup(AM.schools.map(s => L.marker([s.lat, s.lng], { icon: amIcon('school', s.kind === 'primary' ? 'P' : 'S'), keyboard: false, zIndexOffset: 250 })
+    .bindTooltip(`<b>${esc(s.name)}</b><br>${esc(s.level)}`, { className: 'tt', direction: 'top', offset: [0, -8] })));
+  clinicLayer = L.layerGroup(AM.clinics.map(c => L.marker([c.lat, c.lng], { icon: amIcon('clinic', '+'), keyboard: false, zIndexOffset: 240 })
+    .bindTooltip(`<b>${esc(c.name)}</b><br>CHAS clinic`, { className: 'tt', direction: 'top', offset: [0, -8] })));
+  parkLayer = L.layerGroup(AM.parks.map(p => L.marker([p.lat, p.lng], { icon: amIcon('park', ''), keyboard: false, zIndexOffset: 230 })
+    .bindTooltip(`<b>${esc(p.name)}</b>`, { className: 'tt', direction: 'top', offset: [0, -8] })));
 }
 
 // ---------- blocks ----------
@@ -354,6 +375,11 @@ function popupHtml(b) {
     <span class="st" style="color:${s.colour};background:${s.bg}">${esc(s.label)}</span>
     <div class="facts"><div><b>${b.floors ?? '–'}</b><span>storeys</span></div><div><b>${b.units ?? '–'}</b><span>homes</span></div><div><b>${b.lease_left != null ? '~' + b.lease_left + ' yrs' : '–'}</b><span>lease left</span></div></div>
     ${b.types.length ? `<div class="mute">Flat types: ${b.types.map(typeLabel).join(', ')}</div>` : ''}
+    ${b.mrt ? `<div class="mrtline"><i></i>Nearest MRT: <b>${esc(b.mrt[0])}</b>, ${b.mrt[1] < 1000 ? b.mrt[1] + ' m' : (b.mrt[1] / 1000).toFixed(1) + ' km'} away</div>` : ''}
+    ${b.near ? `<div class="sub">Within 1 km</div><div class="near">
+      <span><b>${b.near.primary}</b> primary school${b.near.primary === 1 ? '' : 's'}</span><span><b>${b.near.secondary}</b> secondary / JC</span>
+      <span><b>${b.near.clinic}</b> CHAS clinic${b.near.clinic === 1 ? '' : 's'}</span><span><b>${b.near.hawker}</b> hawker centre${b.near.hawker === 1 ? '' : 's'}</span>
+      <span><b>${b.near.park}</b> park${b.near.park === 1 ? '' : 's'}</span></div><p class="mute">Distances are straight-line.</p>` : ''}
     ${resale}</div>`;
 }
 
@@ -461,9 +487,14 @@ function renderDetail(t) {
       ${resaleRows ? `<table class="t"><thead><tr><th>Flat</th><th class="r">Typical price</th><th class="r">Size</th><th class="r">Lease left</th></tr></thead><tbody>${resaleRows}</tbody></table>`
       : `<p class="empty">No resale flats here yet. Flats can only be resold after the 5-year minimum occupation period.</p>`}
     </div>
-    <div class="card"><h2>Getting around and food</h2>
+    <div class="card"><h2>Getting around and nearby</h2>
       ${town.mrt.length || town.lrt.length ? `<div class="stn">${town.mrt.map(s => `<span>${esc(s)}</span>`).join('')}${town.lrt.map(s => `<span class="l">${esc(s)} LRT</span>`).join('')}</div>` : `<p class="empty">No MRT station inside ${esc(town.name)} yet.</p>`}
-      <p class="note">${town.hawkers} hawker centre${town.hawkers === 1 ? '' : 's'} in this town. Tick "Hawker centres" to see them on the map.</p>
+      <div class="amen">
+        <div><b>${town.schools_primary ?? 0}</b>primary schools</div><div><b>${town.schools_secondary ?? 0}</b>secondary / JC</div>
+        <div><b>${town.clinics ?? 0}</b>CHAS clinics</div><div><b>${town.hawkers}</b>hawker centres</div>
+        <div><b>${town.parks ?? 0}</b>parks</div>
+      </div>
+      <p class="note">Tick the layers in "Your search" to show them on the map. Each block's popup also lists what's within 1 km.</p>
     </div>`;
   $('#backBtn').onclick = () => select(null, false);
 }
@@ -499,7 +530,7 @@ function refresh() {
 }
 
 async function init() {
-  [D, AREAS] = await Promise.all([fetch('data.json').then(r => r.json()), fetch('areas.geojson').then(r => r.json())]);
+  [D, AREAS, AM] = await Promise.all([fetch('data.json').then(r => r.json()), fetch('areas.geojson').then(r => r.json()), fetch('amenities.json').then(r => r.json())]);
   ranked = Object.keys(D.towns).filter(t => D.towns[t].rank).sort((a, b) => D.towns[a].rank - D.towns[b].rank);
   $('#kpis').innerHTML = `<div class="kpi"><b class="num">${Object.keys(D.towns).length}</b><span>HDB towns</span></div>
     <div class="kpi"><b class="num">${D.meta.blocks.toLocaleString()}</b><span>blocks mapped</span></div>
@@ -523,6 +554,7 @@ async function init() {
   drawPoints();
   const toggle = (id, layer) => { const el = $(id); el.onchange = () => el.checked ? layer().addTo(map) : layer().remove(); };
   toggle('#lyrMrt', () => mrtLayer); toggle('#lyrLrt', () => lrtLayer); toggle('#lyrHawk', () => hawkLayer);
+  toggle('#lyrSchool', () => schoolLayer); toggle('#lyrClinic', () => clinicLayer); toggle('#lyrPark', () => parkLayer);
   // switch between small dots and house icons as you zoom in
   map.on('popupopen', () => $('#maptip').style.visibility = 'hidden');
   map.on('popupclose', () => $('#maptip').style.visibility = '');
