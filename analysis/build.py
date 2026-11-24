@@ -16,6 +16,8 @@ from collections import defaultdict
 import pandas as pd
 from shapely.geometry import Point, mapping, shape
 
+import blocks as blockdata
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 SQL = ROOT / "analysis" / "queries.sql"
@@ -29,6 +31,17 @@ TOWN_AREAS = {
 MATURE = {"ANG MO KIO", "BEDOK", "BISHAN", "BUKIT MERAH", "BUKIT TIMAH", "CENTRAL AREA", "CLEMENTI", "GEYLANG",
           "KALLANG/WHAMPOA", "MARINE PARADE", "PASIR RIS", "QUEENSTOWN", "SERANGOON", "TAMPINES", "TOA PAYOH"}
 FLAT_TYPES = ["2 ROOM", "3 ROOM", "4 ROOM", "5 ROOM", "EXECUTIVE"]
+
+
+ABBR = {"AVE": "Avenue", "ST": "Street", "RD": "Road", "DR": "Drive", "CRES": "Crescent", "CTRL": "Central", "NTH": "North",
+        "STH": "South", "BT": "Bukit", "JLN": "Jalan", "LOR": "Lorong", "TG": "Tanjong", "UPP": "Upper", "KG": "Kampong",
+        "GDNS": "Gardens", "GDN": "Garden", "PL": "Place", "CL": "Close", "HTS": "Heights", "PK": "Park", "TER": "Terrace",
+        "CTR": "Centre", "MKT": "Market", "C'WEALTH": "Commonwealth", "SQ": "Square", "LK": "Link", "GR": "Grove",
+        "E": "East", "W": "West", "CT": "Court", "VW": "View", "MT": "Mount", "HWY": "Highway"}
+
+
+def street_name(s):
+    return " ".join(ABBR.get(w, title(w)) for w in s.split())
 
 
 def title(s):
@@ -58,7 +71,7 @@ def resale_stats():
     q = {name: pd.read_sql_query(body, con) for name, body in zip(blocks[1::2], blocks[2::2])}
     con.close()
     print(f"Resale: {len(df):,} sales, {df['month'].min()} to {df['month'].max()}")
-    return q, df["month"].min(), df["month"].max(), len(df)
+    return q, df["month"].min(), df["month"].max(), len(df), df
 
 
 # ---------------------------------------------------------------- BTO prices
@@ -146,7 +159,7 @@ def hawker_centres(shapes):
 
 # ---------------------------------------------------------------- assemble
 def main():
-    q, first_month, last_month, n_sales = resale_stats()
+    q, first_month, last_month, n_sales, resale = resale_stats()
     bto = bto_prices()
     psm = q["town_psm"].set_index("town")
     by_type = q["town_type_price"]
@@ -175,8 +188,26 @@ def main():
             "hawkers": sum(1 for h in hc if h["town"] == t),
         }
 
+    # one small file per town with every block's location, completion year and recent prices
+    blocks_by_town, _, _ = blockdata.build_blocks(DATA, lambda x, y: locate(x, y, shapes), resale)
+    year_now = int(last_month[:4])
+    bdir = ROOT / "blocks"
+    bdir.mkdir(exist_ok=True)
+    for t, rows in blocks_by_town.items():
+        if t not in data_towns:
+            continue
+        for b in rows:
+            b["street"] = street_name(b["street"])
+            start = b.pop("lease") or b["year"]
+            b["lease_left"] = 99 - (year_now - start) if start else None
+        slug = re.sub(r"[^a-z]+", "-", t.lower()).strip("-")
+        data_towns[t]["slug"] = slug
+        data_towns[t]["blocks"] = len(rows)
+        data_towns[t]["newest"] = max((b["year"] for b in rows if b["year"]), default=None)
+        (bdir / f"{slug}.json").write_text(json.dumps(rows, separators=(",", ":")), encoding="utf-8")
+
     out = {
-        "meta": {"resale_from": first_month, "resale_to": last_month, "resale_sales": n_sales,
+        "meta": {"year_now": year_now, "blocks": sum(len(v) for v in blocks_by_town.values()),"resale_from": first_month, "resale_to": last_month, "resale_sales": n_sales,
                  "bto_latest_fy": max(r["fy"] for v in bto.values() for r in v), "towns_ranked": len(order)},
         "towns": data_towns,
         "stations": st,

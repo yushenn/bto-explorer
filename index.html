@@ -4,235 +4,253 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BTO Explorer | Find your first home in Singapore</title>
-<meta name="description" content="An interactive map for young couples: compare HDB towns from most to least expensive, BTO launch prices, MRT stations and hawker centres, using official government data.">
+<meta name="description" content="An independent map for young couples: compare HDB towns from most to least expensive, see every block's completion year and recent resale prices, past BTO launch prices, MRT stations and hawker centres. Built from official open data.">
 <meta property="og:title" content="BTO Explorer">
-<meta property="og:description" content="Compare HDB towns, BTO launch prices, MRT access and food nearby on one map.">
+<meta property="og:description" content="Compare HDB towns and blocks: prices, completion year, MRT and food nearby.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#05070D">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322D3EE'/%3E%3Cstop offset='1' stop-color='%23A26BFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M14 46V28l18-12 18 12v18H38V34H26v12z' fill='%2305070D'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F766E'/%3E%3Cpath d='M14 46V28l18-12 18 12v18H38V34H26v12z' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
-  --bg:#05070D; --panel:rgba(12,16,28,.82); --panel-2:#0D1322; --ink:#E7ECF6; --muted:#8C96AB; --faint:#5D677D; --line:rgba(140,160,210,.16);
-  --cyan:#22D3EE; --blue:#5B8CFF; --violet:#A26BFF; --pink:#F472B6; --green:#34D399; --amber:#FBBF24;
-  --hi:linear-gradient(100deg,var(--cyan),var(--blue) 45%,var(--violet));
-  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  --bg:#F5F6F8; --surface:#FFFFFF; --ink:#111827; --ink-2:#374151; --muted:#6B7280; --faint:#9CA3AF; --line:#E5E7EB; --line-2:#D1D5DB;
+  --primary:#0F766E; --primary-ink:#FFFFFF; --primary-soft:#E6F4F2; --primary-dark:#0B5E58;
+  --new:#16A34A; --mid:#2563EB; --old:#6B7280; --amber:#D97706;
+  --shadow:0 1px 2px rgba(17,24,39,.06),0 8px 24px -12px rgba(17,24,39,.18);
+  --radius:14px;
   --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  color-scheme:dark;
+  color-scheme:light;
 }
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
-a{color:var(--cyan)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:var(--primary)}
 button,input,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
-.mono{font-family:var(--mono)}
+:focus-visible{outline:3px solid rgba(15,118,110,.45);outline-offset:2px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
 
 /* ---------- layout ---------- */
 .app{display:grid;grid-template-rows:auto 1fr;height:100vh;height:100dvh}
-.top{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(5,7,13,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:5}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:700;letter-spacing:-.01em}
-.logo i{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--hi);color:#05070D;box-shadow:0 0 18px rgba(91,140,255,.5)}
-.logo i svg{width:18px;height:18px}
-.logo small{display:block;font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);letter-spacing:0}
+.top{display:flex;align-items:center;gap:14px;padding:0 20px;height:64px;background:var(--surface);border-bottom:1px solid var(--line);z-index:5}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand i{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--primary);color:#fff}
+.brand i svg{width:19px;height:19px}
+.brand b{display:block;font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.brand small{display:block;font-size:12px;color:var(--muted);line-height:1.2}
 .top .sp{flex:1}
-.cta{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;background:var(--hi);color:#05070D;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 8px 24px -10px rgba(91,140,255,.8);white-space:nowrap}
-.cta svg{width:15px;height:15px}
-.ghost{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);color:var(--muted);text-decoration:none;font-size:13px;white-space:nowrap}
-.ghost:hover{color:var(--ink);border-color:var(--cyan)}
+.toplink{color:var(--ink-2);text-decoration:none;font-size:14px;font-weight:500;padding:8px 10px;border-radius:8px}
+.toplink:hover{background:var(--bg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;border:1px solid transparent;cursor:pointer;white-space:nowrap}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--primary);color:var(--primary-ink)}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-outline{background:var(--surface);color:var(--ink);border-color:var(--line-2)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
 
-.main{display:grid;grid-template-columns:420px 1fr;min-height:0}
-.side{overflow-y:auto;border-right:1px solid var(--line);background:linear-gradient(180deg,rgba(13,19,34,.9),rgba(5,7,13,.95));scrollbar-width:thin;scrollbar-color:var(--line) transparent}
-.side-in{padding:20px 18px 40px;display:flex;flex-direction:column;gap:18px}
+.main{display:grid;grid-template-columns:430px 1fr;min-height:0}
+.side{overflow-y:auto;background:var(--bg);border-right:1px solid var(--line);scrollbar-width:thin}
+.side-in{padding:20px;display:flex;flex-direction:column;gap:16px}
 .mapwrap{position:relative;min-height:0}
-#map{position:absolute;inset:0;background:#0B0F19}
+#map{position:absolute;inset:0;background:#EEF0F3}
 
-/* ---------- side panel ---------- */
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan)}
-h1{margin:6px 0 0;font-size:26px;line-height:1.15;letter-spacing:-.02em;font-weight:800}
-h1 span{background:var(--hi);-webkit-background-clip:text;background-clip:text;color:transparent}
-.lead{color:var(--muted);margin:8px 0 0;font-size:14px}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.kpi{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
-.kpi b{display:block;font-family:var(--mono);font-size:18px;font-weight:600}
-.kpi span{font-size:11px;color:var(--muted)}
-.card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:14px;position:relative}
-.card h2{margin:0 0 10px;font-size:13px;font-family:var(--mono);font-weight:500;color:var(--muted);letter-spacing:.02em}
-.card h2 b{color:var(--ink);font-weight:500}
-.seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
-.seg button{flex:1;border:0;background:none;padding:7px 6px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
-.seg button.on{background:rgba(91,140,255,.18);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(91,140,255,.45)}
+/* ---------- panel content ---------- */
+.intro h1{margin:0;font-size:24px;line-height:1.25;letter-spacing:-.02em;font-weight:700}
+.intro p{margin:8px 0 0;color:var(--muted);font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font-size:18px;font-weight:700}
+.kpi span{font-size:12px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:0 1px 2px rgba(17,24,39,.04)}
+.card h2{margin:0 0 12px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card h2 small{font-size:12px;font-weight:500;color:var(--muted)}
+.label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(17,24,39,.12)}
+.field{margin-top:14px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.budget{margin-top:12px}
-.budget output{font-family:var(--mono);font-weight:600;font-size:18px}
-input[type=range]{width:100%;accent-color:var(--cyan);margin:8px 0 2px}
-.hint{font-size:12px;color:var(--faint)}
-.toggles{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel-2);border-radius:999px;padding:5px 10px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
-.chip input{display:none}
-.chip i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
-.chip.on{color:var(--ink);border-color:rgba(34,211,238,.45)}
-.chip.on i{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.budget-val{font-size:20px;font-weight:700;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--primary);margin:8px 0 0}
+.hint{font-size:12px;color:var(--muted)}
+.checks{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.check{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--ink-2);cursor:pointer;background:var(--surface);user-select:none}
+.check input{accent-color:var(--primary);margin:0}
 
-/* ranking list */
-.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
-.rank button{width:100%;display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;padding:8px;border:0;border-radius:10px;background:none;cursor:pointer;text-align:left}
-.rank button:hover,.rank button.sel{background:rgba(91,140,255,.10)}
-.rank .n{font-family:var(--mono);font-size:12px;color:var(--faint);text-align:right}
-.rank .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
-.rank .bar{height:4px;border-radius:99px;margin-top:5px;background:var(--line);overflow:hidden}
+/* ranking */
+.rank{list-style:none;margin:0;padding:0}
+.rank li + li{border-top:1px solid var(--line)}
+.rank button{width:100%;display:grid;grid-template-columns:26px 1fr auto;gap:12px;align-items:center;padding:10px 4px;border:0;background:none;text-align:left;cursor:pointer;border-radius:8px}
+.rank button:hover{background:var(--bg)}
+.rank .n{font-size:13px;color:var(--faint);text-align:right}
+.rank .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rank .bar{height:6px;border-radius:99px;background:var(--bg);margin-top:6px;overflow:hidden}
 .rank .bar i{display:block;height:100%;border-radius:99px}
-.rank .v{font-family:var(--mono);font-size:13px;text-align:right}
-.rank .v small{display:block;color:var(--faint);font-size:11px}
-.tag{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:6px;border:1px solid var(--line);color:var(--muted);font-weight:500}
-.tag.bto{color:var(--green);border-color:rgba(52,211,153,.4)}
-.tag.fit{color:var(--green);border-color:rgba(52,211,153,.4)}
-.tag.btofit{color:var(--amber);border-color:rgba(251,191,36,.4)}
+.rank .v{text-align:right;font-weight:600;font-size:14px}
+.rank .v small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.pill{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.pill.green{background:#ECFDF3;color:#15803D;border-color:#BBF7D0}
+.pill.amber{background:#FFFBEB;color:#B45309;border-color:#FDE68A}
+.pill.teal{background:var(--primary-soft);color:var(--primary);border-color:#B7E1DB}
 
 /* town detail */
-.detail{display:none}
-.detail.show{display:flex;flex-direction:column;gap:14px}
-.back{align-self:flex-start;border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:6px 10px;font-size:13px;color:var(--muted);cursor:pointer}
-.back:hover{color:var(--ink);border-color:var(--cyan)}
-.dh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.dh h3{margin:0;font-size:24px;letter-spacing:-.02em}
-.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.stats div{padding:10px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line)}
-.stats b{display:block;font-family:var(--mono);font-size:16px}
-.stats span{font-size:11px;color:var(--muted)}
-table.t{width:100%;border-collapse:collapse;font-size:13px}
-.t th{text-align:left;font-weight:500;color:var(--faint);font-size:11px;font-family:var(--mono);padding:4px 0}
-.t td{padding:6px 0;border-top:1px solid var(--line)}
-.t td.num,.t th.num{text-align:right;font-family:var(--mono)}
-.save{padding:12px;border-radius:12px;background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(34,211,238,.06));border:1px solid rgba(52,211,153,.35);font-size:14px}
-.save b{font-family:var(--mono);color:var(--green)}
-.spark{width:100%;height:110px;display:block}
+.detail{display:none;flex-direction:column;gap:16px}
+.detail.show{display:flex}
+.back{align-self:flex-start}
+.dh h3{margin:0;font-size:26px;letter-spacing:-.02em;line-height:1.2}
+.dh .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stats b{display:block;font-size:17px;font-weight:700}
+.stats span{font-size:12px;color:var(--muted)}
+.callout{padding:14px;border-radius:12px;background:#ECFDF3;border:1px solid #BBF7D0;font-size:14px;color:#14532D}
+.callout b{color:#15803D}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+.t th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:0 0 6px}
+.t td{padding:8px 0;border-top:1px solid var(--line)}
+.t .r{text-align:right;font-variant-numeric:tabular-nums}
+.t tr.hl td{font-weight:600;color:var(--ink)}
+.t tr.dim td{color:var(--muted)}
+.spark{width:100%;height:110px;display:block;margin-top:6px}
 .stn{display:flex;flex-wrap:wrap;gap:6px}
-.stn span{font-size:12px;padding:4px 9px;border-radius:999px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.3)}
-.stn span.l{background:rgba(162,107,255,.08);border-color:rgba(162,107,255,.3)}
-.empty{color:var(--faint);font-size:13px}
-.note{font-size:12px;color:var(--faint)}
+.stn span{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--primary-soft);color:var(--primary-dark)}
+.stn span.l{background:#EEF2FF;color:#4338CA}
+.empty{color:var(--muted);font-size:14px;margin:0}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.blocklegend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink-2);margin-top:10px}
+.blocklegend span{display:inline-flex;align-items:center;gap:6px}
+.blocklegend i{width:12px;height:12px;border-radius:4px}
 
-/* method / footer */
-details.method{font-size:13px;color:var(--muted)}
-details.method summary{cursor:pointer;color:var(--ink);font-weight:600;list-style:none;display:flex;align-items:center;justify-content:space-between}
-details.method summary::-webkit-details-marker{display:none}
-details.method summary::after{content:"+";font-family:var(--mono);color:var(--cyan)}
-details.method[open] summary::after{content:"−"}
-details.method ul{padding-left:18px;margin:10px 0 0}
-details.method li{margin:5px 0}
-.credit{font-size:12px;color:var(--faint);text-align:center}
+/* about */
+details.about{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;font-size:13px;color:var(--ink-2)}
+details.about summary{cursor:pointer;font-weight:600;color:var(--ink);font-size:14px}
+details.about ul{padding-left:18px;margin:10px 0 0}
+details.about li{margin:6px 0}
+.disclaimer{font-size:12px;color:var(--muted);text-align:center;margin:0}
 
-/* ---------- map extras ---------- */
-.legend{position:absolute;left:14px;bottom:24px;z-index:500;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;min-width:210px}
+/* ---------- map ---------- */
+.legend{position:absolute;left:16px;bottom:28px;z-index:500;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);font-size:12px;min-width:220px}
+.legend b{font-size:12px;font-weight:600}
 .legend .ramp{height:8px;border-radius:99px;margin:8px 0 4px}
-.legend .ends{display:flex;justify-content:space-between;font-family:var(--mono);color:var(--muted);font-size:11px}
-.legend .keys{display:flex;flex-direction:column;gap:5px;margin-top:6px}
-.legend .keys span{display:flex;align-items:center;gap:8px;color:var(--muted)}
-.legend .keys i{width:12px;height:12px;border-radius:3px}
-.hud{position:absolute;right:14px;top:14px;z-index:500;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-family:var(--mono);font-size:11px;color:var(--muted);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.hud b{color:var(--cyan);font-weight:500}
-.leaflet-container{font-family:var(--sans);background:#0B0F19}
-.leaflet-tooltip.tt{background:rgba(5,7,13,.92);color:var(--ink);border:1px solid rgba(91,140,255,.45);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:8px 10px;font-size:12px}
+.legend .ends{display:flex;justify-content:space-between;color:var(--muted)}
+.legend .keys{display:flex;flex-direction:column;gap:5px;margin-top:6px;color:var(--ink-2)}
+.legend .keys span{display:flex;align-items:center;gap:8px}
+.legend .keys i{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.08)}
+.maptip{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:500;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--ink-2);box-shadow:var(--shadow);white-space:nowrap}
+.leaflet-container{font-family:var(--sans)}
+.leaflet-tooltip.tt{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:8px 10px;font-size:13px}
 .leaflet-tooltip.tt::before{display:none}
-.tt b{font-size:13px}
-.tt .m{font-family:var(--mono);color:var(--cyan)}
-.leaflet-control-zoom a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
-.leaflet-control-attribution{background:rgba(5,7,13,.75)!important;color:var(--faint)!important;font-size:10px}
-.leaflet-control-attribution a{color:var(--muted)!important}
-.mrt-dot{border-radius:50%;background:var(--cyan);box-shadow:0 0 0 2px rgba(5,7,13,.9),0 0 10px var(--cyan)}
-.lrt-dot{border-radius:50%;background:var(--violet);box-shadow:0 0 0 2px rgba(5,7,13,.9),0 0 8px var(--violet)}
-.zlow .mrt-dot{transform:scale(.6)}
-.zlow .lrt-dot{transform:scale(.55)}
-.hawk-dot{border-radius:4px;background:var(--amber);box-shadow:0 0 0 2px rgba(5,7,13,.9),0 0 8px rgba(251,191,36,.8);transform:rotate(45deg)}
+.tt b{font-weight:600}
+.tt .m{color:var(--muted)}
+.leaflet-popup-content-wrapper{border-radius:14px;box-shadow:0 12px 40px -12px rgba(17,24,39,.35)}
+.leaflet-popup-content{margin:14px 16px;font-size:13px;line-height:1.5;min-width:240px}
+.pop h4{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.pop .addr{color:var(--muted);font-size:12px}
+.pop .st{display:inline-flex;align-items:center;gap:6px;margin:8px 0 6px;font-weight:600;font-size:12px;padding:3px 9px;border-radius:999px}
+.pop .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 8px}
+.pop .facts div{background:var(--bg);border-radius:8px;padding:6px 8px}
+.pop .facts b{display:block;font-size:13px}
+.pop .facts span{font-size:11px;color:var(--muted)}
+.pop table{width:100%;border-collapse:collapse;font-size:12px}
+.pop td{padding:5px 0;border-top:1px solid var(--line)}
+.pop td.r{text-align:right;font-variant-numeric:tabular-nums}
+.pop .sub{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:8px}
+.pop .mute{color:var(--muted);font-size:12px;margin:4px 0 0}
+.house{display:grid;place-items:center;border-radius:8px 8px 8px 2px;transform:rotate(45deg);box-shadow:0 2px 6px rgba(17,24,39,.35);border:2px solid #fff}
+.house svg{transform:rotate(-45deg);width:12px;height:12px;color:#fff}
+.house.sm{border-radius:50%;transform:none;border-width:1.5px}
+.house.sm svg{display:none}
+.stdot{border-radius:50%;background:#fff;border:3px solid #0F766E;box-shadow:0 1px 4px rgba(17,24,39,.4)}
+.stdot.l{border-color:#4F46E5}
+.zlow .stdot{transform:scale(.6)}
+.zlow .hk{transform:scale(.75)}
+.hk{border-radius:4px;background:#D97706;border:2px solid #fff;box-shadow:0 1px 4px rgba(17,24,39,.4)}
 
 @media (max-width:900px){
   body{overflow:auto}
   .app{height:auto;min-height:100dvh}
-  .main{grid-template-columns:1fr;grid-template-rows:56vh auto}
-  .mapwrap{order:-1;height:56vh}
-  .side{border-right:0;border-top:1px solid var(--line);overflow:visible}
-  .top{padding:10px 12px;gap:8px}
-  .logo small,.ghost.hide-sm{display:none}
-  .cta{padding:8px 10px;font-size:13px}
-  .legend{min-width:0;bottom:22px;left:8px;right:auto;max-width:62%;padding:7px 9px;font-size:11px}
-  .legend[data-mode="price"] .keys{display:none}
-  .legend .ramp{margin:5px 0 3px}
-  .hud{display:none}
+  .main{grid-template-columns:1fr}
+  .mapwrap{order:-1;height:58vh}
+  .side{border-right:0;overflow:visible}
+  .top{padding:0 12px;gap:6px;height:58px}
+  .brand small,.toplink{display:none}
+  .btn-primary.top-cta{padding:8px 11px;font-size:13px}
+  .legend{left:8px;bottom:22px;min-width:0;max-width:64%;padding:8px 10px}
+  .maptip{display:none}
 }
-@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <a class="logo" href="#" aria-label="BTO Explorer home"><i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 21V10l9-6 9 6v11h-6v-6H9v6z"/></svg></i><span>BTO Explorer<small>// find your first home</small></span></a>
+    <a class="brand" href="#"><i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 21V10l9-6 9 6v11h-6v-6H9v6z"/></svg></i><span><b>BTO Explorer</b><small>Independent guide for first-time home buyers</small></span></a>
     <span class="sp"></span>
-    <a class="ghost hide-sm" href="https://github.com/yushenn/bto-explorer" target="_blank" rel="noopener">Code</a>
-    <a class="ghost hide-sm" href="https://yushenn.github.io/matthew-os/" target="_blank" rel="noopener">By Matthew Tan</a>
-    <a class="cta" href="https://homes.hdb.gov.sg/home/finding-a-flat" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>Upcoming BTO launches</a>
+    <a class="toplink" href="#about" onclick="document.getElementById('about').open=true">About the data</a>
+    <a class="toplink" href="https://github.com/yushenn/bto-explorer" target="_blank" rel="noopener">Source code</a>
+    <a class="btn btn-primary top-cta" href="https://homes.hdb.gov.sg/home/finding-a-flat" target="_blank" rel="noopener">Upcoming BTO launches<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
   </header>
 
   <div class="main">
-    <aside class="side" aria-label="Controls and town details">
+    <aside class="side" aria-label="Filters and town details">
       <div class="side-in">
-        <div id="home">
-          <div class="eyebrow">// for young couples · singapore</div>
-          <h1>Where can we <span>afford to live?</span></h1>
-          <p class="lead">Every HDB town on one map, from most to least expensive. See past BTO launch prices, what resale flats really cost, and the MRT stations and hawker centres nearby.</p>
+        <div class="intro" id="intro">
+          <h1>Find a town that fits your budget</h1>
+          <p>Compare every HDB town from most to least expensive, then click a town to see each block on the map: when it was completed, how many storeys, and what flats there recently sold for.</p>
         </div>
 
         <div class="detail" id="detail" aria-live="polite"></div>
 
         <div class="kpis" id="kpis"></div>
 
-        <div class="card">
-          <h2>// flat type</h2>
+        <div class="card" id="filters">
+          <h2>Your search</h2>
+          <span class="label">Flat type</span>
           <div class="seg" role="group" aria-label="Flat type" id="typeSeg"></div>
-          <div class="budget">
-            <div class="row"><span class="hint">Your budget</span><output id="budgetOut" for="budget" class="mono"></output></div>
+          <div class="field">
+            <div class="row"><span class="label" style="margin:0">Budget</span><span class="budget-val num" id="budgetOut"></span></div>
             <input id="budget" type="range" min="200000" max="1200000" step="10000" value="550000" aria-label="Your budget in Singapore dollars">
-            <div class="hint">Towns are coloured by whether a typical flat of this type fits your budget.</div>
           </div>
-          <div class="seg" role="group" aria-label="Map colouring" id="modeSeg" style="margin-top:12px">
-            <button type="button" data-mode="price" class="on">Most → least expensive</button>
-            <button type="button" data-mode="budget">Fits my budget</button>
+          <div class="field">
+            <span class="label">Colour the map by</span>
+            <div class="seg" role="group" aria-label="Map colouring" id="modeSeg">
+              <button type="button" data-mode="price" class="on">Price per m²</button>
+              <button type="button" data-mode="budget">Fits my budget</button>
+            </div>
           </div>
-          <div class="toggles" role="group" aria-label="Map layers">
-            <label class="chip on"><input type="checkbox" id="lyrMrt" checked><i></i>MRT</label>
-            <label class="chip on"><input type="checkbox" id="lyrLrt" checked><i></i>LRT</label>
-            <label class="chip"><input type="checkbox" id="lyrHawk"><i></i>Hawker centres</label>
+          <div class="checks" role="group" aria-label="Map layers">
+            <label class="check"><input type="checkbox" id="lyrMrt" checked>MRT</label>
+            <label class="check"><input type="checkbox" id="lyrLrt">LRT</label>
+            <label class="check"><input type="checkbox" id="lyrHawk">Hawker centres</label>
           </div>
         </div>
 
         <div class="card" id="rankCard">
-          <h2>// towns ranked · <b id="rankTitle">price per m²</b></h2>
+          <h2>Towns, most to least expensive <small id="rankSub"></small></h2>
           <ol class="rank" id="rank"></ol>
-          <p class="note" style="margin:8px 0 0">Tengah is new and has no resale flats yet, so it isn't ranked. Click it on the map to see its BTO prices.</p>
+          <p class="note">Tengah is new and has no resale flats yet, so it isn't ranked. Click it on the map to see its blocks and BTO prices.</p>
         </div>
 
-        <details class="method">
-          <summary>How this works &amp; data sources</summary>
+        <details class="about" id="about">
+          <summary>About the data</summary>
           <ul>
-            <li><b>Most to least expensive</b> uses the median resale price per m² in each town over the last 12 months of HDB resale data (<span id="mResale"></span>), calculated in SQL.</li>
-            <li><b>BTO prices</b> are the price ranges HDB published for BTO flats offered in each financial year (April to March), FY2008 to FY<span id="mFy"></span>. Each year only covers the towns that had launches. "After grants" is the price less the AHG/SHG grants for eligible first-timer families, as published. Today's grants are different, so check HDB for current figures.</li>
+            <li><b>Town ranking:</b> the median resale price per m² in each town over the last 12 months (<span id="mResale"></span>), calculated in SQL.</li>
+            <li><b>Blocks:</b> HDB's list of residential blocks (completion year, storeys, homes, flat types), placed on the map using HDB's building locations. <span id="mBlocks"></span> blocks are shown. Block prices are the resale transactions in the last 24 months.</li>
+            <li><b>BTO prices:</b> the price ranges HDB published for BTO flats offered in each financial year, FY2008 to FY<span id="mFy"></span>. Each year only covers the towns that had launches. "After grants" is the price less the AHG/SHG grants, as published. Today's grants are different.</li>
+            <li><b>Lease left</b> is estimated from the year the lease started (or the completion year), assuming a 99-year lease.</li>
             <li><b>Mature / non-mature</b> follows HDB's estate classification. BTO projects launched from October 2024 are classified Standard, Plus or Prime instead.</li>
-            <li><b>MRT/LRT stations</b> are placed from LTA's station exit locations. <b>Hawker centres</b> come from NEA.</li>
-            <li>Town boundaries use URA's Master Plan 2019 planning areas. Central Area and Kallang/Whampoa span more than one planning area.</li>
+            <li><b>Not included:</b> future BTO projects. There's no open dataset of upcoming launches, so use the "Upcoming BTO launches" button to check HDB's Flat Portal.</li>
           </ul>
-          <p class="note">Data from data.gov.sg (HDB, LTA, NEA, URA) under the Singapore Open Data Licence v1.0. Map tiles © OneMap / Singapore Land Authority. This is an independent student project, not financial advice. Always confirm with HDB.</p>
+          <p class="note">Sources: HDB, URA, LTA and NEA via data.gov.sg, under the Singapore Open Data Licence v1.0. Map © OneMap / Singapore Land Authority.</p>
         </details>
-        <p class="credit">Built by <a href="https://yushenn.github.io/matthew-os/" target="_blank" rel="noopener">Matthew Tan</a> · <a href="https://github.com/yushenn/bto-explorer" target="_blank" rel="noopener">source code</a></p>
+        <p class="disclaimer">BTO Explorer is an independent student project by <a href="https://yushenn.github.io/matthew-os/" target="_blank" rel="noopener">Matthew Tan</a>. It is not affiliated with HDB. Prices are for reference only; always confirm with HDB.</p>
       </div>
     </aside>
 
     <div class="mapwrap">
-      <div id="map" role="application" aria-label="Map of HDB towns in Singapore"></div>
-      <div class="hud" id="hud" aria-hidden="true"></div>
+      <div id="map" role="application" aria-label="Map of HDB towns and blocks in Singapore"></div>
+      <div class="maptip" id="maptip">Click a town to see its blocks</div>
       <div class="legend" id="legend"></div>
     </div>
   </div>
@@ -240,118 +258,156 @@ details.method li{margin:5px 0}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-const TYPES = [['3 ROOM', '3-room'], ['4 ROOM', '4-room'], ['5 ROOM', '5-room'], ['EXECUTIVE', 'Exec']];
+const TYPES = [['2 ROOM', '2-room'], ['3 ROOM', '3-room'], ['4 ROOM', '4-room'], ['5 ROOM', '5-room'], ['EXECUTIVE', 'Exec']];
 const state = { type: '4 ROOM', budget: 550000, mode: 'price', sel: null };
 const $ = s => document.querySelector(s);
 const k = v => v == null ? '–' : v >= 1e6 ? 'S$' + (v / 1e6).toFixed(2) + 'M' : 'S$' + Math.round(v / 1000) + 'k';
 const money = v => v == null ? '–' : 'S$' + Math.round(v).toLocaleString('en-SG');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const monthName = m => new Date(m + '-01T00:00:00').toLocaleDateString('en-SG', { month: 'short', year: 'numeric' });
-let D, AREAS, map, areaLayer, mrtLayer, lrtLayer, hawkLayer, ranked;
+const typeLabel = t => (TYPES.find(x => x[0] === t) || [t, t])[1];
+let D, AREAS, map, areaLayer, mrtLayer, lrtLayer, hawkLayer, blockLayer, ranked, SG_BOUNDS;
+const blockCache = {};
 
-// colour ramp for price per m²: cheaper = cyan, pricier = magenta
-const RAMP = ['#22D3EE', '#3BA7F5', '#5B8CFF', '#7F74FF', '#A26BFF', '#D06BD8', '#F472B6'];
+// cheaper towns are green, pricier towns are red
+const RAMP = ['#CDEBD9', '#E7EFC4', '#F8E3A3', '#F6C389', '#EE9A78', '#DB6A63', '#B8404A'];
 function ramp(t) {
   t = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
   const i = Math.floor(t), f = t - i, a = RAMP[i], b = RAMP[Math.min(i + 1, RAMP.length - 1)];
   const h = (x, j) => parseInt(x.slice(1 + j * 2, 3 + j * 2), 16);
   return '#' + [0, 1, 2].map(j => Math.round(h(a, j) + (h(b, j) - h(a, j)) * f).toString(16).padStart(2, '0')).join('');
 }
+const townColour = t => ramp((D.towns[t].rank - 1) / (D.meta.towns_ranked - 1) * -1 + 1);
 
-function latestBto(t, type) {
-  const rows = (D.towns[t]?.bto || []).filter(r => r.type === type);
-  return rows.length ? rows[0] : null; // rows are sorted newest first
-}
 const RECENT_FY = () => D.meta.bto_latest_fy - 4; // only recent launches count towards "a BTO fits"
+function latestBto(t, type) { const r = (D.towns[t]?.bto || []).filter(x => x.type === type); return r.length ? r[0] : null; }
 function fit(t) {
   const town = D.towns[t]; if (!town) return 'none';
-  const resale = town.prices[state.type]?.median, lb = latestBto(t, state.type);
-  const bto = lb && lb.fy >= RECENT_FY() ? lb : null;
+  const resale = town.prices[state.type]?.median, lb = latestBto(t, state.type), bto = lb && lb.fy >= RECENT_FY() ? lb : null;
   if (resale != null && resale <= state.budget) return 'fit';
   if (bto && bto.min != null && bto.min <= state.budget) return 'btofit';
   if (resale == null && !bto) return 'none';
   return 'over';
 }
-const FIT_COLOURS = { fit: '#34D399', btofit: '#FBBF24', over: '#3B4256', none: '#1A2030' };
+const FIT = { fit: '#6CC59A', btofit: '#F6C762', over: '#D9DCE1', none: '#EEF0F3' };
 
 function areaStyle(f) {
-  const t = f.properties.town, town = t && D.towns[t];
-  const sel = state.sel && t === state.sel;
-  if (!town) return { color: 'rgba(140,160,210,.18)', weight: .6, fillColor: '#0D1322', fillOpacity: .35 };
-  let fill;
-  if (state.mode === 'budget') fill = FIT_COLOURS[fit(t)];
-  else fill = town.psm ? ramp(1 - (town.rank - 1) / (D.meta.towns_ranked - 1)) : '#2A3350';
-  return { color: sel ? '#FFFFFF' : 'rgba(5,7,13,.9)', weight: sel ? 2.5 : 1, fillColor: fill, fillOpacity: sel ? .78 : .55, dashArray: town.psm ? null : '4 4' };
+  const t = f.properties.town, town = t && D.towns[t], sel = state.sel === t;
+  if (!town) return { color: '#C9CDD3', weight: .6, fillColor: '#FFFFFF', fillOpacity: .15 };
+  const fill = state.mode === 'budget' ? FIT[fit(t)] : town.rank ? townColour(t) : '#D9DCE1';
+  if (state.sel) return { color: sel ? '#0F766E' : '#FFFFFF', weight: sel ? 3 : 1, fillColor: fill, fillOpacity: sel ? .12 : .45 };
+  return { color: '#FFFFFF', weight: 1.2, fillColor: fill, fillOpacity: .72, dashArray: town.rank ? null : '4 3' };
 }
 
 function tooltipHtml(t) {
-  const town = D.towns[t];
-  const p = town.prices[state.type], b = latestBto(t, state.type);
+  const town = D.towns[t], p = town.prices[state.type];
   return `<b>${esc(town.name)}</b>${town.rank ? ` <span class="m">#${town.rank}</span>` : ''}<br>` +
-    (town.psm ? `<span class="m">${money(town.psm)}/m²</span> · ` : '') +
-    `${esc(TYPES.find(x => x[0] === state.type)[1])} resale ${p ? k(p.median) : '–'}` +
-    (b ? `<br>BTO FY${b.fy}: ${k(b.min)}–${k(b.max)}` : '');
+    (town.psm ? `${money(town.psm)} per m² · ` : '') + `${typeLabel(state.type)} ${p ? k(p.median) : '–'}` +
+    `<br><span class="m">${town.blocks || 0} blocks · click to explore</span>`;
 }
 
 function drawAreas() {
-  if (areaLayer) areaLayer.remove();
   areaLayer = L.geoJSON(AREAS, {
     style: areaStyle,
     onEachFeature: (f, layer) => {
       const t = f.properties.town;
       if (!t || !D.towns[t]) { layer.bindTooltip(esc(f.properties.area), { className: 'tt', sticky: true }); return; }
       layer.bindTooltip(() => tooltipHtml(t), { className: 'tt', sticky: true });
-      layer.on('mouseover', () => { layer.setStyle({ fillOpacity: .8 }); $('#hud').innerHTML = `hover <b>${esc(D.towns[t].name.toLowerCase())}</b>`; });
+      layer.on('mouseover', () => { if (state.sel !== t) layer.setStyle({ fillOpacity: .9 }); });
       layer.on('mouseout', () => areaLayer.resetStyle(layer));
-      layer.on('click', () => select(t, true));
+      layer.on('click', () => { if (state.sel !== t) select(t, true); });
     }
   }).addTo(map);
-  areaLayer.bringToBack();
 }
 
-function dotIcon(cls, size) { return L.divIcon({ className: '', html: `<div class="${cls}" style="width:${size}px;height:${size}px"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] }); }
+const icon = (cls, w, h) => L.divIcon({ className: '', html: `<div class="${cls}" style="width:${w}px;height:${h}px"></div>`, iconSize: [w, h], iconAnchor: [w / 2, h / 2] });
 function drawPoints() {
-  mrtLayer = L.layerGroup(D.stations.filter(s => s.kind === 'MRT').map(s => L.marker([s.lat, s.lng], { icon: dotIcon('mrt-dot', 9), keyboard: false })
-    .bindTooltip(`<b>${esc(s.name)}</b> MRT`, { className: 'tt', direction: 'top', offset: [0, -6] })));
-  lrtLayer = L.layerGroup(D.stations.filter(s => s.kind === 'LRT').map(s => L.marker([s.lat, s.lng], { icon: dotIcon('lrt-dot', 7), keyboard: false })
-    .bindTooltip(`<b>${esc(s.name)}</b> LRT`, { className: 'tt', direction: 'top', offset: [0, -5] })));
-  hawkLayer = L.layerGroup(D.hawkers.map(h => L.marker([h.lat, h.lng], { icon: dotIcon('hawk-dot', 8), keyboard: false })
-    .bindTooltip(`<b>${esc(h.name)}</b>${h.stalls ? `<br>${h.stalls} cooked-food stalls` : ''}`, { className: 'tt', direction: 'top', offset: [0, -6] })));
+  mrtLayer = L.layerGroup(D.stations.filter(s => s.kind === 'MRT').map(s => L.marker([s.lat, s.lng], { icon: icon('stdot', 14, 14), keyboard: false, zIndexOffset: 500 })
+    .bindTooltip(`<b>${esc(s.name)}</b> MRT`, { className: 'tt', direction: 'top', offset: [0, -8] })));
+  lrtLayer = L.layerGroup(D.stations.filter(s => s.kind === 'LRT').map(s => L.marker([s.lat, s.lng], { icon: icon('stdot l', 11, 11), keyboard: false, zIndexOffset: 400 })
+    .bindTooltip(`<b>${esc(s.name)}</b> LRT`, { className: 'tt', direction: 'top', offset: [0, -7] })));
+  hawkLayer = L.layerGroup(D.hawkers.map(h => L.marker([h.lat, h.lng], { icon: icon('hk', 12, 12), keyboard: false, zIndexOffset: 300 })
+    .bindTooltip(`<b>${esc(h.name)}</b>${h.stalls ? `<br>${h.stalls} cooked-food stalls` : ''}`, { className: 'tt', direction: 'top', offset: [0, -7] })));
   if ($('#lyrMrt').checked) mrtLayer.addTo(map);
-  if ($('#lyrLrt').checked) lrtLayer.addTo(map);
 }
 
+// ---------- blocks ----------
+const NOW = () => D.meta.year_now;
+function blockStatus(b) {
+  if (!b.year) return { label: 'Completion year not listed', colour: '#6B7280', bg: '#F3F4F6', key: 'old' };
+  if (b.year >= NOW()) return { label: `New · completion year ${b.year}`, colour: '#15803D', bg: '#DCFCE7', key: 'new' };
+  if (b.year >= NOW() - 5) return { label: `New · completed ${b.year}`, colour: '#15803D', bg: '#DCFCE7', key: 'new' };
+  if (b.year >= 2000) return { label: `Completed ${b.year}`, colour: '#1D4ED8', bg: '#DBEAFE', key: 'mid' };
+  return { label: `Completed ${b.year}`, colour: '#4B5563', bg: '#F3F4F6', key: 'old' };
+}
+const BLOCK_COLOURS = { new: '#16A34A', mid: '#2563EB', old: '#6B7280' };
+const HOUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 21V10l9-6 9 6v11h-6v-6H9v6z"/></svg>';
+
+function popupHtml(b) {
+  const s = blockStatus(b);
+  const types = TYPES.map(([key, lab]) => { const p = b.prices[key]; return p ? `<tr><td>${lab}</td><td class="r">${k(p.median)}</td><td class="r">${p.n} sold</td><td class="r">${monthName(p.last)}</td></tr>` : ''; }).join('');
+  let resale;
+  if (types) resale = `<div class="sub">Resale, last 24 months</div><table><tbody>${types}</tbody></table><p class="mute">Typical (median) price, number of flats sold and latest sale.</p>`;
+  else if (b.year && b.year >= NOW() - 5) resale = `<div class="sub">Resale</div><p class="mute">New block: owners must usually live here for 5 years (the minimum occupation period) before they can sell, so there are no resales yet.</p>`;
+  else resale = `<div class="sub">Resale</div><p class="mute">No resale transactions in the last 24 months.</p>`;
+  return `<div class="pop"><h4>Blk ${esc(b.blk)}</h4><div class="addr">${esc(b.street)}${b.postal ? ', Singapore ' + esc(b.postal) : ''}</div>
+    <span class="st" style="color:${s.colour};background:${s.bg}">${esc(s.label)}</span>
+    <div class="facts"><div><b>${b.floors ?? '–'}</b><span>storeys</span></div><div><b>${b.units ?? '–'}</b><span>homes</span></div><div><b>${b.lease_left != null ? '~' + b.lease_left + ' yrs' : '–'}</b><span>lease left</span></div></div>
+    ${b.types.length ? `<div class="mute">Flat types: ${b.types.map(typeLabel).join(', ')}</div>` : ''}
+    ${resale}</div>`;
+}
+
+async function loadBlocks(t) {
+  const slug = D.towns[t].slug; if (!slug) return [];
+  if (!blockCache[slug]) blockCache[slug] = await fetch(`blocks/${slug}.json`).then(r => r.json());
+  return blockCache[slug];
+}
+async function showBlocks(t) {
+  if (blockLayer) { blockLayer.remove(); blockLayer = null; }
+  if (!t) return;
+  const rows = await loadBlocks(t);
+  if (state.sel !== t) return;
+  const big = map.getZoom() >= 15;
+  blockLayer = L.layerGroup(rows.map(b => {
+    const s = blockStatus(b), c = BLOCK_COLOURS[s.key];
+    const ic = big ? L.divIcon({ className: '', html: `<div class="house" style="width:24px;height:24px;background:${c}">${HOUSE}</div>`, iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -22] })
+                   : L.divIcon({ className: '', html: `<div class="house sm" style="width:11px;height:11px;background:${c}"></div>`, iconSize: [11, 11], iconAnchor: [5.5, 5.5], popupAnchor: [0, -6] });
+    return L.marker([b.lat, b.lng], { icon: ic, title: `Blk ${b.blk} ${b.street}`, zIndexOffset: s.key === 'new' ? 200 : 0 })
+      .bindPopup(() => popupHtml(b), { maxWidth: 320, autoPanPadding: [30, 30] });
+  })).addTo(map);
+  blockLayer._big = big;
+}
+
+// ---------- side panel ----------
 function legend() {
-  $('#legend').dataset.mode = state.mode;
-  if (state.mode === 'price') {
+  if (state.sel) {
+    $('#legend').innerHTML = `<b>Blocks in ${esc(D.towns[state.sel].name)}</b><div class="keys">
+      <span><i style="background:${BLOCK_COLOURS.new}"></i>New: completed ${NOW() - 5} onwards</span>
+      <span><i style="background:${BLOCK_COLOURS.mid}"></i>Completed 2000–${NOW() - 6}</span>
+      <span><i style="background:${BLOCK_COLOURS.old}"></i>Completed before 2000</span>
+      <span><i style="background:#fff;border:3px solid #0F766E;border-radius:50%"></i>MRT station</span></div>`;
+  } else if (state.mode === 'price') {
     const r = ranked.map(t => D.towns[t].psm);
-    $('#legend').innerHTML = `<div class="eyebrow">// resale price per m²</div><div class="ramp" style="background:linear-gradient(90deg,${RAMP.join(',')})"></div>
-      <div class="ends"><span>${money(Math.min(...r))}</span><span>${money(Math.max(...r))}</span></div>
-      <div class="keys"><span><i style="background:var(--cyan);border-radius:50%;width:9px;height:9px;box-shadow:0 0 8px var(--cyan)"></i>MRT station</span>
-      <span><i style="background:var(--violet);border-radius:50%;width:7px;height:7px"></i>LRT station</span></div>`;
+    $('#legend').innerHTML = `<b>Resale price per m², last 12 months</b><div class="ramp" style="background:linear-gradient(90deg,${RAMP.join(',')})"></div>
+      <div class="ends num"><span>${money(Math.min(...r))}</span><span>${money(Math.max(...r))}</span></div>`;
   } else {
-    const label = TYPES.find(x => x[0] === state.type)[1];
-    $('#legend').innerHTML = `<div class="eyebrow">// ${esc(label)} within ${k(state.budget)}</div><div class="keys">
-      <span><i style="background:${FIT_COLOURS.fit}"></i>Typical resale fits</span>
-      <span><i style="background:${FIT_COLOURS.btofit}"></i>Only a BTO fits (launch FY${RECENT_FY()}+)</span>
-      <span><i style="background:${FIT_COLOURS.over}"></i>Above budget</span>
-      <span><i style="background:${FIT_COLOURS.none};border:1px solid var(--line)"></i>No data for this flat type</span></div>`;
+    $('#legend').innerHTML = `<b>${typeLabel(state.type)} within ${k(state.budget)}</b><div class="keys">
+      <span><i style="background:${FIT.fit}"></i>A typical resale flat fits</span>
+      <span><i style="background:${FIT.btofit}"></i>Only a recent BTO fits (FY${RECENT_FY()}+)</span>
+      <span><i style="background:${FIT.over}"></i>Above budget</span></div>`;
   }
 }
 
 function renderRank() {
-  const label = TYPES.find(x => x[0] === state.type)[1];
-  $('#rankTitle').textContent = state.mode === 'price' ? 'price per m²' : `${label} vs ${k(state.budget)}`;
+  $('#rankSub').textContent = state.mode === 'price' ? 'price per m²' : `${typeLabel(state.type)} · ${k(state.budget)}`;
   const max = D.towns[ranked[0]].psm, min = D.towns[ranked[ranked.length - 1]].psm;
   $('#rank').innerHTML = ranked.map(t => {
     const town = D.towns[t], p = town.prices[state.type], f = fit(t);
-    const pct = 18 + 82 * (town.psm - min) / (max - min);
-    const colour = ramp(1 - (town.rank - 1) / (D.meta.towns_ranked - 1));
-    const tag = state.mode === 'budget' ? (f === 'fit' ? '<span class="tag fit">fits</span>' : f === 'btofit' ? '<span class="tag btofit">BTO fits</span>' : '') : (town.bto.length ? '<span class="tag bto">BTO data</span>' : '');
-    return `<li><button type="button" data-town="${esc(t)}" class="${state.sel === t ? 'sel' : ''}">
-      <span class="n">${town.rank}</span>
-      <span><span class="nm">${esc(town.name)} ${tag}</span><span class="bar"><i style="width:${pct}%;background:${colour}"></i></span></span>
-      <span class="v">${money(town.psm)}<small>${label} ${p ? k(p.median) : '–'}</small></span></button></li>`;
+    const pct = 15 + 85 * (town.psm - min) / (max - min);
+    const tag = state.mode === 'budget' ? (f === 'fit' ? '<span class="pill green">Fits</span>' : f === 'btofit' ? '<span class="pill amber">BTO fits</span>' : '') : (town.bto.length ? '<span class="pill teal">BTO prices</span>' : '');
+    return `<li><button type="button" data-town="${esc(t)}"><span class="n num">${town.rank}</span>
+      <span><span class="nm">${esc(town.name)} ${tag}</span><span class="bar"><i style="width:${pct}%;background:${townColour(t)}"></i></span></span>
+      <span class="v num">${money(town.psm)}<small>${typeLabel(state.type)} ${p ? k(p.median) : '–'}</small></span></button></li>`;
   }).join('');
   document.querySelectorAll('#rank button').forEach(b => b.onclick = () => select(b.dataset.town, true));
 }
@@ -359,80 +415,79 @@ function renderRank() {
 function sparkline(t) {
   const rows = D.towns[t].bto.filter(r => r.type === state.type && r.min && r.max).sort((a, b) => a.fy - b.fy);
   if (rows.length < 2) return '';
-  const W = 360, H = 110, L = 6, R = 6, T = 12, B = 18;
+  const W = 360, H = 110, L = 6, R = 6, T = 14, B = 18;
   const x0 = rows[0].fy, x1 = rows[rows.length - 1].fy, y0 = Math.min(...rows.map(r => r.min)) * .9, y1 = Math.max(...rows.map(r => r.max)) * 1.05;
   const X = v => L + (v - x0) / Math.max(1, x1 - x0) * (W - L - R), Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
   const top = rows.map(r => `${X(r.fy).toFixed(1)},${Y(r.max).toFixed(1)}`), bot = rows.slice().reverse().map(r => `${X(r.fy).toFixed(1)},${Y(r.min).toFixed(1)}`);
-  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="BTO price range over the years">
-    <defs><linearGradient id="sg" x1="0" x2="1"><stop offset="0" stop-color="#22D3EE" stop-opacity=".35"/><stop offset="1" stop-color="#A26BFF" stop-opacity=".35"/></linearGradient></defs>
-    <polygon points="${top.concat(bot).join(' ')}" fill="url(#sg)"/>
-    <polyline points="${top.join(' ')}" fill="none" stroke="#A26BFF" stroke-width="2"/><polyline points="${rows.map(r => `${X(r.fy).toFixed(1)},${Y(r.min).toFixed(1)}`).join(' ')}" fill="none" stroke="#22D3EE" stroke-width="2"/>
-    ${rows.map(r => `<circle cx="${X(r.fy).toFixed(1)}" cy="${Y(r.min).toFixed(1)}" r="2.5" fill="#22D3EE"/>`).join('')}
-    <text x="${L}" y="${H - 4}" fill="#8C96AB" font-size="10" font-family="JetBrains Mono">FY${x0}</text><text x="${W - R}" y="${H - 4}" fill="#8C96AB" font-size="10" text-anchor="end" font-family="JetBrains Mono">FY${x1}</text>
-    <text x="${W - R}" y="${(Y(rows[rows.length - 1].max) - 4).toFixed(1)}" fill="#E7ECF6" font-size="10" text-anchor="end" font-family="JetBrains Mono">${k(rows[rows.length - 1].max)}</text>
+  return `<div class="hint" style="margin-top:12px">${typeLabel(state.type)} BTO price range over the years</div>
+  <svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="BTO price range over the years">
+    <polygon points="${top.concat(bot).join(' ')}" fill="#E6F4F2"/>
+    <polyline points="${top.join(' ')}" fill="none" stroke="#0F766E" stroke-width="2"/>
+    <polyline points="${rows.map(r => `${X(r.fy).toFixed(1)},${Y(r.min).toFixed(1)}`).join(' ')}" fill="none" stroke="#5EB6AC" stroke-width="2"/>
+    <text x="${L}" y="${H - 3}" fill="#6B7280" font-size="11">FY${x0}</text><text x="${W - R}" y="${H - 3}" fill="#6B7280" font-size="11" text-anchor="end">FY${x1}</text>
+    <text x="${W - R}" y="${(Y(rows[rows.length - 1].max) - 5).toFixed(1)}" fill="#111827" font-size="11" font-weight="600" text-anchor="end">${k(rows[rows.length - 1].max)}</text>
   </svg>`;
 }
 
 function renderDetail(t) {
-  const town = D.towns[t], label = TYPES.find(x => x[0] === state.type)[1];
+  const town = D.towns[t], label = typeLabel(state.type);
   const p = town.prices[state.type], b = latestBto(t, state.type);
-  const latestFy = town.bto.length ? town.bto[0].fy : null;
-  const btoRows = latestFy ? town.bto.filter(r => r.fy === latestFy) : [];
-  let save = '';
-  if (p && b && b.min != null) {
-    const gap = p.median - b.min;
-    save = gap > 0
-      ? `<div class="save">In ${esc(town.name)}, a ${label} BTO started at <b>${k(b.min)}</b> in FY${b.fy}, while a typical ${label} resale flat sold for <b>${k(p.median)}</b> in the last year: a gap of <b>${k(gap)}</b>.</div>`
-      : `<div class="save">In ${esc(town.name)}, the latest ${label} BTO launch (FY${b.fy}) started at <b>${k(b.min)}</b>, close to the typical resale price of ${k(p.median)}.</div>`;
-  }
-  const typeRows = TYPES.map(([key, lab]) => { const x = town.prices[key]; return x ? `<tr><td>${lab}</td><td class="num">${k(x.median)}</td><td class="num">${x.area ?? '–'} m²</td><td class="num">${x.lease ?? '–'} yrs</td></tr>` : ''; }).join('');
+  const latestFy = town.bto.length ? town.bto[0].fy : null, btoRows = latestFy ? town.bto.filter(r => r.fy === latestFy) : [];
+  let callout = '';
+  if (p && b && b.min != null && p.median > b.min)
+    callout = `<div class="callout">In ${esc(town.name)}, a ${label} BTO started from <b>${k(b.min)}</b> in FY${b.fy}. A typical ${label} resale flat sold for <b>${k(p.median)}</b> in the last year, a difference of <b>${k(p.median - b.min)}</b>.</div>`;
+  const resaleRows = TYPES.map(([key, lab]) => { const x = town.prices[key]; return x ? `<tr class="${key === state.type ? 'hl' : ''}"><td>${lab}</td><td class="r">${k(x.median)}</td><td class="r">${x.area ?? '–'} m²</td><td class="r">~${x.lease ?? '–'} yrs</td></tr>` : ''; }).join('');
   $('#detail').innerHTML = `
-    <button type="button" class="back" id="backBtn">← All towns</button>
-    <div class="dh"><div><div class="eyebrow">// town ${town.rank ? '#' + town.rank + ' of ' + D.meta.towns_ranked : '· new town'}</div><h3>${esc(town.name)}</h3>
-      <div class="badges"><span class="tag">${town.mature ? 'Mature estate' : 'Non-mature estate'}</span>${town.bto.length ? `<span class="tag bto">BTO launches FY${town.bto[town.bto.length - 1].fy}–${latestFy}</span>` : ''}</div></div></div>
+    <button type="button" class="btn btn-outline back" id="backBtn">← All towns</button>
+    <div class="dh"><h3>${esc(town.name)}</h3>
+      <div class="meta">${town.rank ? `<span class="pill">#${town.rank} of ${D.meta.towns_ranked} by price</span>` : '<span class="pill">New town</span>'}
+      <span class="pill">${town.mature ? 'Mature estate' : 'Non-mature estate'}</span>
+      ${town.newest ? `<span class="pill green">Newest block: ${town.newest}</span>` : ''}</div></div>
     <div class="stats">
-      <div><b>${town.psm ? money(town.psm) : '–'}</b><span>per m², resale</span></div>
-      <div><b>${town.growth != null ? (town.growth > 0 ? '+' : '') + town.growth + '%' : '–'}</b><span>vs 5 years ago</span></div>
-      <div><b>${town.mrt.length}${town.lrt.length ? ' + ' + town.lrt.length : ''}</b><span>MRT${town.lrt.length ? ' + LRT' : ''} stations</span></div>
+      <div><b class="num">${town.psm ? money(town.psm) : '–'}</b><span>per m², resale</span></div>
+      <div><b class="num">${town.blocks || 0}</b><span>HDB blocks</span></div>
+      <div><b class="num">${town.mrt.length}${town.lrt.length ? ' + ' + town.lrt.length : ''}</b><span>MRT${town.lrt.length ? ' + LRT' : ''} stations</span></div>
     </div>
-    ${save}
-    <div class="card"><h2>// BTO launch prices${latestFy ? ' · <b>FY' + latestFy + '</b>' : ''}</h2>
-      ${btoRows.length ? `<table class="t"><thead><tr><th>Flat</th><th class="num">Price range</th><th class="num">After grants*</th></tr></thead><tbody>
-        ${btoRows.map(r => `<tr${r.type === state.type ? ' style="color:var(--ink);font-weight:600"' : ' style="color:var(--muted)"'}><td>${r.type.replace(' ROOM', '-room')}</td><td class="num">${k(r.min)}–${k(r.max)}</td><td class="num">${r.min_grant != null ? k(r.min_grant) + '–' + k(r.max_grant) : '–'}</td></tr>`).join('')}
-      </tbody></table>${sparkline(t) ? `<div class="hint" style="margin:10px 0 4px">${label} BTO price range over the years</div>${sparkline(t)}` : ''}
-      <p class="note" style="margin:8px 0 0">*Less AHG/SHG grants for eligible first-timer families, as published by HDB. Today's grants differ.</p>`
-      : `<p class="empty">No BTO price data for ${esc(town.name)} in HDB's published table (it only covers towns with launches each year). Check HDB for upcoming launches.</p>`}
-      <a class="cta" style="margin-top:12px;justify-content:center" href="https://homes.hdb.gov.sg/home/finding-a-flat" target="_blank" rel="noopener">Check upcoming BTOs on HDB</a>
+    <p class="hint" style="margin:-4px 0 0">Each house icon on the map is a block. Click one to see when it was completed and what flats there sold for.</p>
+    ${callout}
+    <div class="card"><h2>BTO launch prices ${latestFy ? `<small>FY${latestFy}</small>` : ''}</h2>
+      ${btoRows.length ? `<table class="t"><thead><tr><th>Flat</th><th class="r">Price range</th><th class="r">After grants*</th></tr></thead><tbody>
+        ${btoRows.map(r => `<tr class="${r.type === state.type ? 'hl' : 'dim'}"><td>${typeLabel(r.type)}</td><td class="r">${k(r.min)}–${k(r.max)}</td><td class="r">${r.min_grant != null ? k(r.min_grant) + '–' + k(r.max_grant) : '–'}</td></tr>`).join('')}
+        </tbody></table>${sparkline(t)}<p class="note">*Less the AHG/SHG grants for eligible first-timer families, as published by HDB. Today's grants are different.</p>`
+      : `<p class="empty">HDB's published BTO price table has no launches in ${esc(town.name)}. It only covers the towns with launches each year.</p>`}
+      <a class="btn btn-outline" style="margin-top:12px;width:100%" href="https://homes.hdb.gov.sg/home/finding-a-flat" target="_blank" rel="noopener">Check upcoming BTO launches on HDB</a>
     </div>
-    <div class="card"><h2>// resale prices · last 12 months</h2>
-      ${typeRows ? `<table class="t"><thead><tr><th>Flat</th><th class="num">Typical price</th><th class="num">Size</th><th class="num">Lease left</th></tr></thead><tbody>${typeRows}</tbody></table>` : `<p class="empty">No resale flats here yet. Flats can only be resold after the 5-year minimum occupation period.</p>`}
+    <div class="card"><h2>Resale prices <small>last 12 months</small></h2>
+      ${resaleRows ? `<table class="t"><thead><tr><th>Flat</th><th class="r">Typical price</th><th class="r">Size</th><th class="r">Lease left</th></tr></thead><tbody>${resaleRows}</tbody></table>`
+      : `<p class="empty">No resale flats here yet. Flats can only be resold after the 5-year minimum occupation period.</p>`}
     </div>
-    <div class="card"><h2>// getting around & food</h2>
-      ${town.mrt.length ? `<div class="stn">${town.mrt.map(s => `<span>${esc(s)}</span>`).join('')}${town.lrt.map(s => `<span class="l">${esc(s)} LRT</span>`).join('')}</div>` : `<p class="empty">No MRT station inside ${esc(town.name)} yet.</p>`}
-      <p class="hint" style="margin:10px 0 0">${town.hawkers} hawker centre${town.hawkers === 1 ? '' : 's'} in this town. Turn on "Hawker centres" to see them on the map.</p>
+    <div class="card"><h2>Getting around and food</h2>
+      ${town.mrt.length || town.lrt.length ? `<div class="stn">${town.mrt.map(s => `<span>${esc(s)}</span>`).join('')}${town.lrt.map(s => `<span class="l">${esc(s)} LRT</span>`).join('')}</div>` : `<p class="empty">No MRT station inside ${esc(town.name)} yet.</p>`}
+      <p class="note">${town.hawkers} hawker centre${town.hawkers === 1 ? '' : 's'} in this town. Tick "Hawker centres" to see them on the map.</p>
     </div>`;
   $('#backBtn').onclick = () => select(null, false);
 }
 
 function select(t, fly) {
   state.sel = t;
-  $('#rankCard').style.display = t ? 'none' : '';
-  $('#home').style.display = t ? 'none' : '';
-  $('#kpis').style.display = t ? 'none' : '';
+  ['#intro', '#kpis', '#rankCard'].forEach(s => $(s).style.display = t ? 'none' : '');
   $('#detail').classList.toggle('show', !!t);
+  $('#maptip').textContent = t ? 'Zoom in and click a block for details' : 'Click a town to see its blocks';
   if (t) {
     renderDetail(t);
     if (fly) {
-      const layers = []; areaLayer.eachLayer(l => { if (l.feature.properties.town === t) layers.push(l); });
-      if (layers.length) map.flyToBounds(L.featureGroup(layers).getBounds(), { padding: [40, 40], maxZoom: 14, duration: .8 });
+      const ls = []; areaLayer.eachLayer(l => { if (l.feature.properties.town === t) ls.push(l); });
+      if (ls.length) map.flyToBounds(L.featureGroup(ls).getBounds(), { padding: [30, 30], maxZoom: 15, duration: .8 });
     }
     document.querySelector('.side').scrollTop = 0;
-    $('#hud').innerHTML = `selected <b>${esc(D.towns[t].name.toLowerCase())}</b>`;
   } else {
+    map.closePopup();
     map.flyToBounds(SG_BOUNDS, { duration: .6 });
     renderRank();
   }
   areaLayer.setStyle(areaStyle);
+  legend();
+  showBlocks(t);
 }
 
 function refresh() {
@@ -443,37 +498,40 @@ function refresh() {
   if (state.sel) renderDetail(state.sel);
 }
 
-let SG_BOUNDS;
 async function init() {
   [D, AREAS] = await Promise.all([fetch('data.json').then(r => r.json()), fetch('areas.geojson').then(r => r.json())]);
   ranked = Object.keys(D.towns).filter(t => D.towns[t].rank).sort((a, b) => D.towns[a].rank - D.towns[b].rank);
-  $('#kpis').innerHTML = `<div class="kpi"><b>${ranked.length + 1}</b><span>HDB towns</span></div>
-    <div class="kpi"><b>${D.stations.length}</b><span>MRT + LRT stations</span></div>
-    <div class="kpi"><b>FY${D.meta.bto_latest_fy}</b><span>latest BTO prices</span></div>`;
+  $('#kpis').innerHTML = `<div class="kpi"><b class="num">${Object.keys(D.towns).length}</b><span>HDB towns</span></div>
+    <div class="kpi"><b class="num">${D.meta.blocks.toLocaleString()}</b><span>blocks mapped</span></div>
+    <div class="kpi"><b class="num">${D.stations.filter(s => s.kind === 'MRT').length}</b><span>MRT stations</span></div>`;
   $('#mResale').textContent = `${D.meta.resale_sales.toLocaleString()} sales, ${monthName(D.meta.resale_from)} to ${monthName(D.meta.resale_to)}`;
+  $('#mBlocks').textContent = D.meta.blocks.toLocaleString();
   $('#mFy').textContent = D.meta.bto_latest_fy;
-  $('#typeSeg').innerHTML = TYPES.map(([key, lab]) => `<button type="button" data-type="${key}" class="${key === state.type ? 'on' : ''}">${lab}</button>`).join('');
+  $('#typeSeg').innerHTML = TYPES.filter(x => x[0] !== '2 ROOM').map(([key, lab]) => `<button type="button" data-type="${key}" class="${key === state.type ? 'on' : ''}">${lab}</button>`).join('');
   document.querySelectorAll('#typeSeg button').forEach(b => b.onclick = () => { state.type = b.dataset.type; document.querySelectorAll('#typeSeg button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
-  document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => { state.mode = b.dataset.mode; document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
-  $('#budget').oninput = e => { state.budget = +e.target.value; if (state.mode !== 'budget') { state.mode = 'budget'; document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('on', x.dataset.mode === 'budget')); } refresh(); };
+  const setMode = m => { state.mode = m; document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('on', x.dataset.mode === m)); };
+  document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => { setMode(b.dataset.mode); refresh(); });
+  $('#budget').oninput = e => { state.budget = +e.target.value; setMode('budget'); refresh(); };
 
   SG_BOUNDS = L.latLngBounds([1.235, 103.62], [1.47, 104.01]);
-  map = L.map('map', { zoomControl: true, minZoom: 10, maxZoom: 18, zoomSnap: 0.25, zoomDelta: 0.5, maxBounds: L.latLngBounds([1.144, 103.5], [1.494, 104.15]), attributionControl: true }).fitBounds(SG_BOUNDS);
-  L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Night/{z}/{x}/{y}.png', {
+  map = L.map('map', { minZoom: 10, maxZoom: 18, zoomSnap: .25, zoomDelta: .5, maxBounds: L.latLngBounds([1.144, 103.5], [1.494, 104.15]) }).fitBounds(SG_BOUNDS);
+  L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Grey/{z}/{x}/{y}.png', {
     detectRetina: true, maxZoom: 19, minZoom: 10,
     attribution: '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> © contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">Singapore Land Authority</a>'
   }).addTo(map);
   drawAreas();
   drawPoints();
-  const toggle = (id, layer) => { const el = $(id); el.onchange = () => { el.parentElement.classList.toggle('on', el.checked); el.checked ? layer().addTo(map) : layer().remove(); }; };
+  const toggle = (id, layer) => { const el = $(id); el.onchange = () => el.checked ? layer().addTo(map) : layer().remove(); };
   toggle('#lyrMrt', () => mrtLayer); toggle('#lyrLrt', () => lrtLayer); toggle('#lyrHawk', () => hawkLayer);
+  // switch between small dots and house icons as you zoom in
+  map.on('popupopen', () => $('#maptip').style.visibility = 'hidden');
+  map.on('popupclose', () => $('#maptip').style.visibility = '');
   const zoomClass = () => map.getContainer().classList.toggle('zlow', map.getZoom() < 12.5);
   map.on('zoomend', zoomClass); zoomClass();
-  map.on('mousemove', e => { if (!state.sel) $('#hud').innerHTML = `lat <b>${e.latlng.lat.toFixed(4)}</b> · lng <b>${e.latlng.lng.toFixed(4)}</b>`; });
-  $('#hud').innerHTML = 'hover a town · click for details';
+  map.on('zoomend', () => { if (state.sel && blockLayer && blockLayer._big !== (map.getZoom() >= 15)) showBlocks(state.sel); });
   refresh();
 }
-init().catch(() => { $('#rank').innerHTML = '<li class="empty">Couldn\'t load the data. Please refresh.</li>'; });
+init().catch(err => { console.error(err); $('#rank').innerHTML = '<li class="empty">Couldn\'t load the data. Please refresh the page.</li>'; });
 </script>
 </body>
 </html>

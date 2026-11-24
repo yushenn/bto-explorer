@@ -7,6 +7,8 @@ Saves into data/:
   areas.geojson            Master Plan 2019 planning area boundaries (URA)
   mrt_exits.geojson        MRT and LRT station exits (LTA)
   hawkers.geojson          Hawker centres (NEA)
+  property-info.csv        Every HDB block: completion year, storeys, homes, flat types (HDB)
+  hdb-buildings.geojson    Location of every HDB building (HDB, about 60 MB)
 """
 import json
 import pathlib
@@ -19,6 +21,8 @@ FILES = {
     "d_4765db0e87b9c86336792efe8a1f7a66": "areas.geojson",
     "d_b39d3a0871985372d7e1637193335da5": "mrt_exits.geojson",
     "d_4a086da0a5553be1d89383cd90d07ecd": "hawkers.geojson",
+    "d_17f5382f26140b1fdae0ba2ef6239d2f": "property-info.csv",
+    "d_16b157c52ed637edd6ba1232e026258d": "hdb-buildings.geojson",
 }
 BTO_PRICES = "d_2d493bdcc1d9a44828b6e71cb095b88d"  # small table, read through the datastore API
 
