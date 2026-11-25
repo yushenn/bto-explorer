@@ -140,6 +140,17 @@ details.about li{margin:6px 0}
 .legend .keys i{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.08)}
 .maptip{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:500;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--ink-2);box-shadow:var(--shadow);white-space:nowrap}
 .leaflet-container{font-family:var(--sans)}
+.detail-open .legend,.detail-open .maptip{visibility:hidden}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:2000;max-height:72vh;overflow-y:auto;overscroll-behavior:contain;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -12px 40px rgba(17,24,39,.25);padding:8px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);visibility:hidden}
+.sheet.open{transform:none;visibility:visible}
+.sheet .grab{width:40px;height:5px;border-radius:99px;background:var(--line-2);margin:4px auto 10px}
+.sheet .close{position:absolute;top:10px;right:12px;width:36px;height:36px;border-radius:50%;border:0;background:var(--bg);color:var(--ink-2);font-size:20px;line-height:1;cursor:pointer}
+.sheet .pop{padding-right:30px}
+.sheet .pop h4{font-size:18px}
+.sheet .pop .facts b{font-size:15px}
+.sheet .pop,.sheet .pop table,.sheet .near,.sheet .mrtline{font-size:14px}
+.house.picked{outline:3px solid #F59E0B;outline-offset:2px}
+@media (prefers-reduced-motion: reduce){.sheet{transition:none}}
 .leaflet-tooltip.tt{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:8px 10px;font-size:13px}
 .leaflet-tooltip.tt::before{display:none}
 .tt b{font-weight:600}
@@ -375,7 +386,7 @@ function popupHtml(b) {
     <span class="st" style="color:${s.colour};background:${s.bg}">${esc(s.label)}</span>
     <div class="facts"><div><b>${b.floors ?? '–'}</b><span>storeys</span></div><div><b>${b.units ?? '–'}</b><span>homes</span></div><div><b>${b.lease_left != null ? '~' + b.lease_left + ' yrs' : '–'}</b><span>lease left</span></div></div>
     ${b.types.length ? `<div class="mute">Flat types: ${b.types.map(typeLabel).join(', ')}</div>` : ''}
-    ${b.mrt ? `<div class="mrtline"><i></i>Nearest MRT: <b>${esc(b.mrt[0])}</b>, ${b.mrt[1] < 1000 ? b.mrt[1] + ' m' : (b.mrt[1] / 1000).toFixed(1) + ' km'} away</div>` : ''}
+    ${b.mrt ? `<div class="mrtline"><i></i><span>Nearest MRT: <b>${esc(b.mrt[0])}</b>, ${b.mrt[1] < 1000 ? b.mrt[1] + ' m' : (b.mrt[1] / 1000).toFixed(1) + ' km'} away</span></div>` : ''}
     ${b.near ? `<div class="sub">Within 1 km</div><div class="near">
       <span><b>${b.near.primary}</b> primary school${b.near.primary === 1 ? '' : 's'}</span><span><b>${b.near.secondary}</b> secondary / JC</span>
       <span><b>${b.near.clinic}</b> CHAS clinic${b.near.clinic === 1 ? '' : 's'}</span><span><b>${b.near.hawker}</b> hawker centre${b.near.hawker === 1 ? '' : 's'}</span>
@@ -398,10 +409,13 @@ async function showBlocks(t) {
     const s = blockStatus(b), c = BLOCK_COLOURS[s.key];
     const ic = big ? L.divIcon({ className: '', html: `<div class="house" style="width:24px;height:24px;background:${c}">${HOUSE}</div>`, iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -22] })
                    : L.divIcon({ className: '', html: `<div class="house sm" style="width:11px;height:11px;background:${c}"></div>`, iconSize: [11, 11], iconAnchor: [5.5, 5.5], popupAnchor: [0, -6] });
-    return L.marker([b.lat, b.lng], { icon: ic, title: `Blk ${b.blk} ${b.street}`, zIndexOffset: s.key === 'new' ? 200 : 0 })
-      .bindPopup(() => popupHtml(b), { maxWidth: 320, autoPanPadding: [30, 30] });
+    const mk = L.marker([b.lat, b.lng], { icon: ic, title: `Blk ${b.blk} ${b.street}`, zIndexOffset: s.key === 'new' ? 200 : 0 });
+    if (isPhone()) mk.on('click', () => openSheet(b, mk));
+    else mk.bindPopup(() => popupHtml(b), { maxWidth: 320, autoPanPadding: [30, 30] });
+    return mk;
   })).addTo(map);
   blockLayer._big = big;
+  blockLayer._phone = isPhone();
 }
 
 // ---------- side panel ----------
@@ -499,6 +513,31 @@ function renderDetail(t) {
   $('#backBtn').onclick = () => select(null, false);
 }
 
+// ---------- block details: bottom sheet on phones ----------
+const isPhone = () => window.matchMedia('(max-width: 900px)').matches;
+let picked = null;
+function openSheet(b, marker) {
+  $('#sheetBody').innerHTML = popupHtml(b);
+  $('#sheet').classList.add('open');
+  $('#sheet').scrollTop = 0;
+  document.body.classList.add('detail-open');
+  if (picked) picked.classList.remove('picked');
+  picked = marker.getElement() && marker.getElement().querySelector('.house');
+  if (picked) picked.classList.add('picked');
+  // keep the tapped block visible above the sheet
+  const mapRect = map.getContainer().getBoundingClientRect();
+  const sheetTop = window.innerHeight - $('#sheet').getBoundingClientRect().height;
+  const visibleBottom = Math.min(mapRect.bottom, sheetTop) - mapRect.top;
+  const pt = map.latLngToContainerPoint([b.lat, b.lng]);
+  const targetY = Math.max(40, visibleBottom / 2);
+  if (pt.y > visibleBottom - 30 || pt.y < 30) map.panBy([0, pt.y - targetY], { animate: true });
+}
+function closeSheet() {
+  $('#sheet').classList.remove('open');
+  document.body.classList.remove('detail-open');
+  if (picked) { picked.classList.remove('picked'); picked = null; }
+}
+
 function select(t, fly) {
   state.sel = t;
   ['#intro', '#kpis', '#rankCard'].forEach(s => $(s).style.display = t ? 'none' : '');
@@ -518,6 +557,7 @@ function select(t, fly) {
   }
   areaLayer.setStyle(areaStyle);
   legend();
+  closeSheet();
   showBlocks(t);
 }
 
@@ -556,14 +596,24 @@ async function init() {
   toggle('#lyrMrt', () => mrtLayer); toggle('#lyrLrt', () => lrtLayer); toggle('#lyrHawk', () => hawkLayer);
   toggle('#lyrSchool', () => schoolLayer); toggle('#lyrClinic', () => clinicLayer); toggle('#lyrPark', () => parkLayer);
   // switch between small dots and house icons as you zoom in
-  map.on('popupopen', () => $('#maptip').style.visibility = 'hidden');
-  map.on('popupclose', () => $('#maptip').style.visibility = '');
+  map.on('popupopen', () => document.body.classList.add('detail-open'));
+  map.on('popupclose', () => document.body.classList.remove('detail-open'));
+  $('#sheetClose').onclick = closeSheet;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+  map.on('click', closeSheet);
+  // switching between phone and computer layouts swaps popups and the sheet
+  window.matchMedia('(max-width: 900px)').addEventListener('change', () => { closeSheet(); map.closePopup(); if (state.sel) showBlocks(state.sel); });
   const zoomClass = () => map.getContainer().classList.toggle('zlow', map.getZoom() < 12.5);
   map.on('zoomend', zoomClass); zoomClass();
-  map.on('zoomend', () => { if (state.sel && blockLayer && blockLayer._big !== (map.getZoom() >= 15)) showBlocks(state.sel); });
+  map.on('zoomend', () => { if (state.sel && blockLayer && blockLayer._big !== (map.getZoom() >= 15)) { const keep = picked; showBlocks(state.sel); if (keep) closeSheet(); } });
   refresh();
 }
 init().catch(err => { console.error(err); $('#rank').innerHTML = '<li class="empty">Couldn\'t load the data. Please refresh the page.</li>'; });
 </script>
+<div class="sheet" id="sheet" role="dialog" aria-modal="false" aria-label="Block details">
+  <div class="grab" aria-hidden="true"></div>
+  <button type="button" class="close" id="sheetClose" aria-label="Close block details">×</button>
+  <div id="sheetBody"></div>
+</div>
 </body>
 </html>
